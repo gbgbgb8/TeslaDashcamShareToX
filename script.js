@@ -1,3 +1,5 @@
+const { createFFmpeg, fetchFile } = FFmpeg;
+
 const folderInput = document.getElementById('folderInput');
 const videoContainer = document.getElementById('videoContainer');
 const mainVideo = document.getElementById('mainVideo');
@@ -6,9 +8,20 @@ const navigationButtons = document.getElementById('navigationButtons');
 const exportButton = document.getElementById('exportButton');
 const timeline = document.getElementById('timeline');
 
+// Add this near the top of the file
+const clipTypeSelect = document.getElementById('clipTypeSelect');
+
 let videoEvents = [];
 let currentEventIndex = 0;
 let clipType = 'RecentClips';
+
+// Add this event listener
+clipTypeSelect.addEventListener('change', (event) => {
+    clipType = event.target.value;
+    if (folderInput.files.length > 0) {
+        processFiles(Array.from(folderInput.files));
+    }
+});
 
 folderInput.addEventListener('change', (event) => {
     const files = Array.from(event.target.files);
@@ -16,30 +29,39 @@ folderInput.addEventListener('change', (event) => {
 });
 
 function processFiles(files) {
-    // Group files by clip type
-    const groupedFiles = {
-        RecentClips: [],
-        SentryClips: [],
-        SavedClips: []
-    };
+    showLoading('Processing files...');
+    try {
+        // Group files by clip type
+        const groupedFiles = {
+            RecentClips: [],
+            SentryClips: [],
+            SavedClips: []
+        };
 
-    files.forEach(file => {
-        const path = file.webkitRelativePath;
-        if (path.includes('RecentClips')) {
-            groupedFiles.RecentClips.push(file);
-        } else if (path.includes('SentryClips')) {
-            groupedFiles.SentryClips.push(file);
-        } else if (path.includes('SavedClips')) {
-            groupedFiles.SavedClips.push(file);
+        files.forEach(file => {
+            const path = file.webkitRelativePath;
+            if (path.includes('RecentClips')) {
+                groupedFiles.RecentClips.push(file);
+            } else if (path.includes('SentryClips')) {
+                groupedFiles.SentryClips.push(file);
+            } else if (path.includes('SavedClips')) {
+                groupedFiles.SavedClips.push(file);
+            }
+        });
+
+        // Process the selected clip type
+        videoEvents = groupFilesByEvent(groupedFiles[clipType]);
+        if (videoEvents.length > 0) {
+            displayEvent(0);
+            updateNavigationButtons();
+            createTimeline();
+        } else {
+            throw new Error(`No video events found for ${clipType}`);
         }
-    });
-
-    // Process the selected clip type
-    videoEvents = groupFilesByEvent(groupedFiles[clipType]);
-    if (videoEvents.length > 0) {
-        displayEvent(0);
-        updateNavigationButtons();
-        createTimeline();
+    } catch (error) {
+        handleError(error);
+    } finally {
+        hideLoading();
     }
 }
 
@@ -141,10 +163,24 @@ function createTimeline() {
     });
 }
 
+function showLoading(message) {
+    const loadingDiv = document.createElement('div');
+    loadingDiv.id = 'loadingIndicator';
+    loadingDiv.textContent = message;
+    document.body.appendChild(loadingDiv);
+}
+
+function hideLoading() {
+    const loadingDiv = document.getElementById('loadingIndicator');
+    if (loadingDiv) {
+        loadingDiv.remove();
+    }
+}
+
 exportButton.addEventListener('click', () => safeAsyncFunction(combineVideos));
 
 async function combineVideos() {
-    const { createFFmpeg, fetchFile } = FFmpeg;
+    showLoading('Exporting video...');
     const ffmpeg = createFFmpeg({ log: true });
     await ffmpeg.load();
 
@@ -162,12 +198,13 @@ async function combineVideos() {
     await ffmpeg.run('-i', 'input0.mp4', '-i', 'input1.mp4', '-i', 'input2.mp4', '-i', 'input3.mp4',
         '-filter_complex', filterComplex, 'output.mp4');
 
-    const data = ffmpeg.FS('readFile', 'output.mp4');
+    const data = await ffmpeg.FS('readFile', 'output.mp4');
     const url = URL.createObjectURL(new Blob([data.buffer], { type: 'video/mp4' }));
     const a = document.createElement('a');
     a.href = url;
     a.download = `combined_dashcam_${formatTimestamp(timestamp)}.mp4`;
     a.click();
+    hideLoading();
 }
 
 // Add error handling
