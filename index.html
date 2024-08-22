@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tesla Dashcam Viewer</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <h1>Tesla Dashcam Viewer</h1>
+    <input type="file" id="folderInput" webkitdirectory directory multiple>
+    <select id="clipTypeSelect">
+        <option value="RecentClips">Recent Clips</option>
+        <option value="SentryClips">Sentry Clips</option>
+        <option value="SavedClips">Saved Clips</option>
+    </select>
+    <div id="videoContainer">
+        <video id="mainVideo" controls></video>
+        <div id="secondaryVideos"></div>
+        <div id="timeline"></div>
+        <div id="navigationButtons"></div>
+    </div>
+    <button id="exportButton">Export Combined Video</button>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ffmpeg.js/0.10.1/ffmpeg.min.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>

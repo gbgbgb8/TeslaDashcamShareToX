@@ -1,0 +1,53 @@
+Main subfolders:
+
+RecentClips: Contains regular driving footage
+SentryClips: Contains footage triggered by Sentry Mode events
+SavedClips: Contains clips that the driver has manually saved.
+
+Video resolution: 1280x960 (Original)
+
+File naming convention for RecentClips:
+
+Format: YYYY-MM-DD_HH-MM-SS-camera.mp4
+Example: 2024-08-19_19-06-18-front.mp4
+Breakdown:
+
+YYYY-MM-DD: Date (Year-Month-Day)
+HH-MM-SS: Time (Hour-Minute-Second) in 24-hour format
+camera: Indicates which camera recorded the footage
+
+front: Front-facing camera
+back: Rear-facing camera
+left_repeater: Left side camera
+right_repeater: Right side camera
+
+
+SentryClips folder structure:
+
+Subfolders named with the event start time: YYYY-MM-DD_HH-MM-SS
+Example: ./TeslaCam/SentryClips/2024-08-17_11-46-38/
+
+
+Files within SentryClips event folders:
+
+event.json: Likely contains metadata about the Sentry Mode event
+thumb.png: Probably a thumbnail image of the event
+event.mp4: Possibly a compiled video of the event
+Individual camera files following the same naming convention as RecentClips
+
+
+Time intervals:
+
+Video clips appear to be recorded in approximately 1-minute intervals
+Sequential clips often have a 1-2 second gap between end and start times
+
+
+File types:
+
+All video files are in .mp4 format
+JSON file for event data
+PNG file for thumbnail in Sentry events
+
+Example from a real Tesla Dashcam:
+2024-07-17_16-32-54-back.mp4, 2024-07-17_16-32-54-right_repeater.mp4, 
+2024-07-17_16-32-54-front.mp4, 2024-07-17_16-32-54-left_repeater.mp4
