@@ -14,6 +14,9 @@ document.getElementById('source-folder').addEventListener('change', function() {
         const maxDate = new Date(Math.max(...dates));
 
         const dateRangeSlider = document.getElementById('date-range');
+        if (dateRangeSlider.noUiSlider) {
+            dateRangeSlider.noUiSlider.destroy();
+        }
         noUiSlider.create(dateRangeSlider, {
             start: [minDate.getTime(), maxDate.getTime()],
             connect: true,
