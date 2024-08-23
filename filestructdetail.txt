@@ -4,7 +4,7 @@ RecentClips: Contains regular driving footage
 SentryClips: Contains footage triggered by Sentry Mode events
 SavedClips: Contains clips that the driver has manually saved.
 
-Video resolution: 1280x960 (Original)
+Video resolution: 1280x960 (Original), 1280x720 (landscape), 720x1280 (portrait), 720x720 (square)
 
 File naming convention for RecentClips:
 
@@ -49,5 +49,7 @@ JSON file for event data
 PNG file for thumbnail in Sentry events
 
 Example from a real Tesla Dashcam:
-2024-07-17_16-32-54-back.mp4, 2024-07-17_16-32-54-right_repeater.mp4, 
-2024-07-17_16-32-54-front.mp4, 2024-07-17_16-32-54-left_repeater.mp4
+2024-07-17_16-32-54-back.mp4
+2024-07-17_16-32-54-right_repeater.mp4
+2024-07-17_16-32-54-front.mp4
+2024-07-17_16-32-54-left_repeater.mp4

@@ -3,6 +3,7 @@ document.getElementById('dateTimeSelect').addEventListener('change', handleDateT
 
 let videoGroups = {};
 let videos = [];
+let videoIdCounter = 0;
 
 function handleFileSelect(event) {
     const files = event.target.files;
@@ -71,6 +72,11 @@ function handleDateTimeChange() {
         videoGroups[selectedDateTime].forEach(file => {
             const videoItem = document.createElement('div');
             videoItem.className = 'video-item card';
+            videoItem.id = `video-item-${videoIdCounter++}`;
+            videoItem.draggable = true;
+            videoItem.addEventListener('dragstart', handleDragStart);
+            videoItem.addEventListener('dragover', handleDragOver);
+            videoItem.addEventListener('drop', handleDrop);
 
             const label = document.createElement('label');
             label.className = 'video-label';
@@ -80,10 +86,6 @@ function handleDateTimeChange() {
             const videoElement = document.createElement('video');
             videoElement.controls = true;
             videoElement.src = URL.createObjectURL(file);
-            videoElement.draggable = true;
-            videoElement.addEventListener('dragstart', handleDragStart);
-            videoElement.addEventListener('dragover', handleDragOver);
-            videoElement.addEventListener('drop', handleDrop);
             videoElement.addEventListener('play', handlePlay);
             videoElement.addEventListener('pause', handlePause);
             videoElement.addEventListener('timeupdate', handleTimeUpdate);
@@ -122,11 +124,31 @@ function handleDateTimeChange() {
         exportButton.className = 'btn btn-primary';
         exportButton.addEventListener('click', exportClips);
         videoContainer.appendChild(exportButton);
+
+        // Add clear primary button
+        const clearPrimaryButton = document.createElement('button');
+        clearPrimaryButton.textContent = 'Clear Primary';
+        clearPrimaryButton.className = 'btn btn-secondary';
+        clearPrimaryButton.addEventListener('click', clearPrimarySelection);
+        videoContainer.appendChild(clearPrimaryButton);
     }
 }
 
+function clearPrimarySelection() {
+    const primaryRadios = document.querySelectorAll('input[name="primaryVideo"]');
+    primaryRadios.forEach(radio => {
+        radio.checked = false;
+    });
+    videos.forEach(video => {
+        video.classList.remove('primary');
+    });
+}
+
 function handleDragStart(event) {
-    event.dataTransfer.setData('text/plain', event.target.src);
+    event.dataTransfer.setData('text/plain', event.target.id);
+    setTimeout(() => {
+        event.target.style.visibility = 'hidden';
+    }, 50);
 }
 
 function handleDragOver(event) {
@@ -135,15 +157,14 @@ function handleDragOver(event) {
 
 function handleDrop(event) {
     event.preventDefault();
-    const draggedSrc = event.dataTransfer.getData('text/plain');
-    const targetSrc = event.target.src;
+    const draggedId = event.dataTransfer.getData('text/plain');
+    const draggedElement = document.getElementById(draggedId);
+    const targetElement = event.target.closest('.video-item');
 
-    const draggedElement = Array.from(document.querySelectorAll('video')).find(video => video.src === draggedSrc);
-    const targetElement = Array.from(document.querySelectorAll('video')).find(video => video.src === targetSrc);
-
-    if (draggedElement && targetElement) {
-        const draggedIndex = Array.from(draggedElement.parentNode.children).indexOf(draggedElement);
-        const targetIndex = Array.from(targetElement.parentNode.children).indexOf(targetElement);
+    if (draggedElement && targetElement && draggedElement !== targetElement) {
+        const videoContainer = document.getElementById('videoContainer');
+        const draggedIndex = Array.from(videoContainer.children).indexOf(draggedElement);
+        const targetIndex = Array.from(videoContainer.children).indexOf(targetElement);
 
         if (draggedIndex < targetIndex) {
             targetElement.after(draggedElement);
@@ -151,6 +172,10 @@ function handleDrop(event) {
             targetElement.before(draggedElement);
         }
     }
+
+    setTimeout(() => {
+        draggedElement.style.visibility = 'visible';
+    }, 50);
 }
 
 function handlePlay(event) {
