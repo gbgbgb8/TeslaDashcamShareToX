@@ -187,25 +187,42 @@ function updateGridLayout() {
             video.style.zIndex = '2';
         }
     });
+
+    // Ensure all videos are visible and clickable
+    videoItems.forEach(video => {
+        video.style.pointerEvents = 'auto';
+    });
 }
 
 function handleDrop(event) {
     event.preventDefault();
     const draggedId = event.dataTransfer.getData('text/plain');
     const draggedElement = document.getElementById(draggedId);
-    const targetElement = event.target.closest('.video-item');
+    const targetElement = event.target.closest('.video-item') || event.target.closest('.video-container');
 
-    if (draggedElement && targetElement && draggedElement !== targetElement) {
+    if (draggedElement && targetElement) {
         const videoContainer = document.getElementById('videoContainer');
         const videoItems = Array.from(videoContainer.querySelectorAll('.video-item'));
-        const draggedIndex = videoItems.indexOf(draggedElement);
-        const targetIndex = videoItems.indexOf(targetElement);
+        const visibleVideos = videoItems.filter(item => item.style.display !== 'none');
 
-        if (draggedIndex < targetIndex) {
-            targetElement.parentNode.insertBefore(draggedElement, targetElement.nextSibling);
+        let targetIndex;
+        if (targetElement.classList.contains('video-item')) {
+            targetIndex = visibleVideos.indexOf(targetElement);
         } else {
-            targetElement.parentNode.insertBefore(draggedElement, targetElement);
+            // If dropped on an empty space, append to the end
+            targetIndex = visibleVideos.length;
         }
+
+        const draggedIndex = visibleVideos.indexOf(draggedElement);
+
+        // Update the order of visible videos
+        if (draggedIndex !== -1) {
+            visibleVideos.splice(draggedIndex, 1);
+        }
+        visibleVideos.splice(targetIndex, 0, draggedElement);
+
+        // Reorder the videos in the DOM
+        visibleVideos.forEach(video => videoContainer.appendChild(video));
 
         updateGridLayout();
     }
