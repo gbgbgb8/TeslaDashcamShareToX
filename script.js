@@ -8,34 +8,53 @@ let videoIdCounter = 0;
 function handleFileSelect(event) {
     const files = event.target.files;
     const dateTimeSelect = document.getElementById('dateTimeSelect');
+    const loadingOverlay = document.getElementById('loadingOverlay');
     
     dateTimeSelect.innerHTML = '';
     videoGroups = {};
     videos = [];
 
-    Array.from(files).forEach(file => {
+    loadingOverlay.classList.remove('d-none');
+
+    Promise.all(Array.from(files).map(file => {
         if (file.type === 'video/mp4') {
             const dateTime = extractDateTime(file.name);
             if (!videoGroups[dateTime]) {
                 videoGroups[dateTime] = [];
             }
-            videoGroups[dateTime].push(file);
+            return new Promise((resolve) => {
+                const video = document.createElement('video');
+                video.preload = 'metadata';
+                video.onloadedmetadata = () => {
+                    videoGroups[dateTime].push({
+                        file: file,
+                        duration: video.duration
+                    });
+                    resolve();
+                };
+                video.src = URL.createObjectURL(file);
+            });
         }
-    });
+        return Promise.resolve();
+    })).then(() => {
+        // Populate the dateTimeSelect dropdown
+        Object.keys(videoGroups).forEach(dateTime => {
+            const option = document.createElement('option');
+            option.value = dateTime;
+            option.textContent = dateTime;
+            dateTimeSelect.appendChild(option);
+        });
 
-    // Populate the dateTimeSelect dropdown
-    Object.keys(videoGroups).forEach(dateTime => {
-        const option = document.createElement('option');
-        option.value = dateTime;
-        option.textContent = dateTime;
-        dateTimeSelect.appendChild(option);
-    });
+        // Automatically select the first option
+        if (dateTimeSelect.options.length > 0) {
+            dateTimeSelect.selectedIndex = 0;
+            handleDateTimeChange();
+        }
 
-    // Automatically select the first option
-    if (dateTimeSelect.options.length > 0) {
-        dateTimeSelect.selectedIndex = 0;
-        handleDateTimeChange();
-    }
+        loadingOverlay.classList.add('d-none');
+        document.getElementById('exportButton').disabled = false;
+        document.getElementById('clearPrimaryButton').disabled = false;
+    });
 }
 
 function extractDateTime(fileName) {
@@ -69,24 +88,27 @@ function handleDateTimeChange() {
     videos = [];
 
     if (videoGroups[selectedDateTime]) {
-        videoGroups[selectedDateTime].forEach(file => {
+        videoGroups[selectedDateTime].forEach(videoData => {
             const videoItem = document.createElement('div');
-            videoItem.className = 'video-item card';
+            videoItem.className = 'video-item';
             videoItem.id = `video-item-${videoIdCounter++}`;
             videoItem.draggable = true;
             videoItem.addEventListener('dragstart', handleDragStart);
             videoItem.addEventListener('dragover', handleDragOver);
             videoItem.addEventListener('drop', handleDrop);
             videoItem.addEventListener('dragend', handleDragEnd);
+            videoItem.addEventListener('touchstart', handleTouchStart);
+            videoItem.addEventListener('touchmove', handleTouchMove);
+            videoItem.addEventListener('touchend', handleTouchEnd);
 
-            const label = document.createElement('label');
+            const label = document.createElement('div');
             label.className = 'video-label';
-            label.textContent = extractCameraType(file.name);
+            label.textContent = extractCameraType(videoData.file.name);
             videoItem.appendChild(label);
 
             const videoElement = document.createElement('video');
             videoElement.controls = true;
-            videoElement.src = URL.createObjectURL(file);
+            videoElement.src = URL.createObjectURL(videoData.file);
             videoElement.addEventListener('play', handlePlay);
             videoElement.addEventListener('pause', handlePause);
             videoElement.addEventListener('timeupdate', handleTimeUpdate);
@@ -97,43 +119,41 @@ function handleDateTimeChange() {
 
             const visibilityCheckbox = document.createElement('input');
             visibilityCheckbox.type = 'checkbox';
+            visibilityCheckbox.className = 'form-check-input';
             visibilityCheckbox.checked = true;
             visibilityCheckbox.addEventListener('change', () => {
-                videoElement.style.display = visibilityCheckbox.checked ? 'block' : 'none';
+                videoItem.style.display = visibilityCheckbox.checked ? 'flex' : 'none';
                 updateVideoSizes();
             });
-            controls.appendChild(visibilityCheckbox);
+            const visibilityLabel = document.createElement('label');
+            visibilityLabel.className = 'form-check-label';
+            visibilityLabel.appendChild(visibilityCheckbox);
+            visibilityLabel.appendChild(document.createTextNode(' Visible'));
+            controls.appendChild(visibilityLabel);
 
             const primaryRadio = document.createElement('input');
             primaryRadio.type = 'radio';
+            primaryRadio.className = 'form-check-input';
             primaryRadio.name = 'primaryVideo';
             primaryRadio.addEventListener('change', () => {
-                videos.forEach(v => v.classList.remove('primary'));
+                videos.forEach(v => v.closest('.video-item').classList.remove('primary'));
                 if (primaryRadio.checked) {
                     videoItem.classList.add('primary');
                 }
                 updateVideoSizes();
             });
-            controls.appendChild(primaryRadio);
+            const primaryLabel = document.createElement('label');
+            primaryLabel.className = 'form-check-label';
+            primaryLabel.appendChild(primaryRadio);
+            primaryLabel.appendChild(document.createTextNode(' Primary'));
+            controls.appendChild(primaryLabel);
 
             videoItem.appendChild(controls);
             videoContainer.appendChild(videoItem);
             videos.push(videoElement);
         });
 
-        // Add export button
-        const exportButton = document.createElement('button');
-        exportButton.textContent = 'Export Selected Clips';
-        exportButton.className = 'btn btn-primary';
-        exportButton.addEventListener('click', exportClips);
-        videoContainer.appendChild(exportButton);
-
-        // Add clear primary button
-        const clearPrimaryButton = document.createElement('button');
-        clearPrimaryButton.textContent = 'Clear Primary';
-        clearPrimaryButton.className = 'btn btn-secondary';
-        clearPrimaryButton.addEventListener('click', clearPrimarySelection);
-        videoContainer.appendChild(clearPrimaryButton);
+        updateVideoSizes();
     }
 }
 
@@ -143,19 +163,56 @@ function clearPrimarySelection() {
         radio.checked = false;
     });
     videos.forEach(video => {
-        video.classList.remove('primary');
+        video.closest('.video-item').classList.remove('primary');
     });
     updateVideoSizes();
 }
 
 function updateVideoSizes() {
     const primaryVideo = document.querySelector('.video-item.primary');
-    videos.forEach(video => {
-        const videoItem = video.closest('.video-item');
-        if (videoItem !== primaryVideo) {
-            videoItem.classList.toggle('secondary', primaryVideo !== null);
-        }
-    });
+    const secondaryVideos = document.querySelectorAll('.video-item:not(.primary)');
+    
+    if (primaryVideo) {
+        primaryVideo.style.width = '100%';
+        primaryVideo.style.height = '100%';
+        primaryVideo.style.top = '0';
+        primaryVideo.style.left = '0';
+        
+        const secondaryWidth = '50%';
+        const secondaryHeight = '50%';
+        
+        secondaryVideos.forEach((video, index) => {
+            video.classList.add('secondary');
+            video.style.width = secondaryWidth;
+            video.style.height = secondaryHeight;
+            
+            if (index === 0) {
+                video.style.top = '0';
+                video.style.left = '50%';
+            } else if (index === 1) {
+                video.style.top = '50%';
+                video.style.left = '0';
+            } else if (index === 2) {
+                video.style.top = '50%';
+                video.style.left = '50%';
+            }
+        });
+    } else {
+        const videoCount = secondaryVideos.length;
+        const columns = Math.ceil(Math.sqrt(videoCount));
+        const rows = Math.ceil(videoCount / columns);
+        
+        secondaryVideos.forEach((video, index) => {
+            video.classList.remove('secondary');
+            const row = Math.floor(index / columns);
+            const col = index % columns;
+            
+            video.style.width = `${100 / columns}%`;
+            video.style.height = `${100 / rows}%`;
+            video.style.top = `${(row * 100) / rows}%`;
+            video.style.left = `${(col * 100) / columns}%`;
+        });
+    }
 }
 
 function handleDragStart(event) {
@@ -217,6 +274,49 @@ function handleTimeUpdate(event) {
     });
 }
 
+function handleTouchStart(event) {
+    const touch = event.touches[0];
+    const videoItem = event.target.closest('.video-item');
+    videoItem.dataset.touchStartX = touch.clientX;
+    videoItem.dataset.touchStartY = touch.clientY;
+}
+
+function handleTouchMove(event) {
+    event.preventDefault();
+    const touch = event.touches[0];
+    const videoItem = event.target.closest('.video-item');
+    const deltaX = touch.clientX - videoItem.dataset.touchStartX;
+    const deltaY = touch.clientY - videoItem.dataset.touchStartY;
+    
+    videoItem.style.transform = `translate(${deltaX}px, ${deltaY}px)`;
+    videoItem.classList.add('dragging');
+}
+
+function handleTouchEnd(event) {
+    const videoItem = event.target.closest('.video-item');
+    videoItem.style.transform = '';
+    videoItem.classList.remove('dragging');
+    
+    const touch = event.changedTouches[0];
+    const target = document.elementFromPoint(touch.clientX, touch.clientY);
+    const targetVideoItem = target.closest('.video-item');
+    
+    if (targetVideoItem && targetVideoItem !== videoItem) {
+        const videoContainer = document.getElementById('videoContainer');
+        const items = Array.from(videoContainer.children);
+        const fromIndex = items.indexOf(videoItem);
+        const toIndex = items.indexOf(targetVideoItem);
+        
+        if (fromIndex < toIndex) {
+            targetVideoItem.after(videoItem);
+        } else {
+            targetVideoItem.before(videoItem);
+        }
+    }
+    
+    updateVideoSizes();
+}
+
 function exportClips() {
     const selectedVideos = Array.from(document.querySelectorAll('video'));
     const exportData = selectedVideos.map(video => video.src);
@@ -226,3 +326,7 @@ function exportClips() {
 
     // Implement actual export logic here (e.g., creating a zip file)
 }
+
+// Add these event listeners at the end of the file
+document.getElementById('exportButton').addEventListener('click', exportClips);
+document.getElementById('clearPrimaryButton').addEventListener('click', clearPrimarySelection);
