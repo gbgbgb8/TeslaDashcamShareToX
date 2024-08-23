@@ -16,6 +16,13 @@
     margin: 10px 0;
 }
 
+.video-controls {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+    margin-bottom: 10px;
+}
+
 .file-list {
     list-style: none;
     padding: 0;

@@ -88,6 +88,29 @@ function handleDateTimeChange() {
             videoElement.addEventListener('timeupdate', handleTimeUpdate);
             videoItem.appendChild(videoElement);
 
+            const controls = document.createElement('div');
+            controls.className = 'video-controls';
+
+            const visibilityCheckbox = document.createElement('input');
+            visibilityCheckbox.type = 'checkbox';
+            visibilityCheckbox.checked = true;
+            visibilityCheckbox.addEventListener('change', () => {
+                videoElement.style.display = visibilityCheckbox.checked ? 'block' : 'none';
+            });
+            controls.appendChild(visibilityCheckbox);
+
+            const primaryRadio = document.createElement('input');
+            primaryRadio.type = 'radio';
+            primaryRadio.name = 'primaryVideo';
+            primaryRadio.addEventListener('change', () => {
+                videos.forEach(v => v.classList.remove('primary'));
+                if (primaryRadio.checked) {
+                    videoElement.classList.add('primary');
+                }
+            });
+            controls.appendChild(primaryRadio);
+
+            videoItem.appendChild(controls);
             videoContainer.appendChild(videoItem);
             videos.push(videoElement);
         });
