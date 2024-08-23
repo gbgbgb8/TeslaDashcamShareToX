@@ -1,0 +1,20 @@
+.video-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.video-container video {
+    width: 100%;
+    max-width: 300px;
+    margin: 10px;
+}
+
+.file-list {
+    list-style: none;
+    padding: 0;
+}
+
+.file-list li {
+    margin: 5px 0;
+}

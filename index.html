@@ -3,15 +3,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tesla Dashcam Video Composer</title>
-    <link rel="stylesheet" href="styles.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/14.6.3/nouislider.min.css">
-    <script src="https://unpkg.com/preact@10.5.13/dist/preact.min.js"></script>
-    <script src="https://unpkg.com/preact@10.5.13/hooks/dist/hooks.umd.js"></script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <title>Tesla Dashcam Viewer</title>
+    <link rel="stylesheet" href="https://unpkg.com/spectre.css/dist/spectre.min.css">
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div id="app"></div>
-    <script type="text/babel" src="script.js"></script>
+    <div class="container">
+        <h1 class="text-center">Tesla Dashcam Viewer</h1>
+        <div class="columns">
+            <div class="column col-3">
+                <input type="file" id="fileInput" multiple accept=".mp4,.json,.png">
+                <ul id="fileList" class="file-list"></ul>
+            </div>
+            <div class="column col-9">
+                <div id="videoContainer" class="video-container"></div>
+            </div>
+        </div>
+    </div>
+    <script src="script.js"></script>
 </body>
 </html>
