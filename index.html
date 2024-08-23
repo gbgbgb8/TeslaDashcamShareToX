@@ -3,26 +3,47 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tesla Dashcam Viewer</title>
+    <title>Tesla Dashcam Video Composer</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <h1>Tesla Dashcam Viewer</h1>
-    <input type="file" id="folderInput" webkitdirectory directory multiple>
-    <select id="clipTypeSelect">
-        <option value="RecentClips">Recent Clips</option>
-        <option value="SentryClips">Sentry Clips</option>
-        <option value="SavedClips">Saved Clips</option>
-    </select>
-    <div id="videoContainer">
-        <video id="mainVideo" controls></video>
-        <div id="secondaryVideos"></div>
-        <div id="timeline"></div>
-        <div id="navigationButtons"></div>
+    <div class="container">
+        <h1>Tesla Dashcam Video Composer</h1>
+        <div class="form-group">
+            <label for="source-folder">Select Source Folder:</label>
+            <input type="file" id="source-folder" webkitdirectory directory multiple>
+        </div>
+        <div class="form-group">
+            <label for="start-date">Start Date and Time:</label>
+            <input type="datetime-local" id="start-date">
+        </div>
+        <div class="form-group">
+            <label for="end-date">End Date and Time:</label>
+            <input type="datetime-local" id="end-date">
+        </div>
+        <div class="form-group">
+            <label for="layout">Select Layout:</label>
+            <select id="layout">
+                <option value="cross">Cross</option>
+                <option value="corners">Corners</option>
+                <option value="diamond">Diamond</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="main-angle">Select Main Angle:</label>
+            <select id="main-angle">
+                <option value="front">Front</option>
+                <option value="back">Back</option>
+                <option value="left_repeater">Left Repeater</option>
+                <option value="right_repeater">Right Repeater</option>
+            </select>
+        </div>
+        <button id="compose-button">Compose Video</button>
+        <div class="video-preview" id="video-preview">
+            <!-- Video previews will be inserted here -->
+        </div>
     </div>
-    <button id="exportButton">Export Combined Video</button>
 
-    <script src="https://unpkg.com/@ffmpeg/ffmpeg@0.10.1/dist/ffmpeg.min.js"></script>
     <script src="script.js"></script>
 </body>
 </html>
