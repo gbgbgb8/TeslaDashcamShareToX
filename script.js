@@ -201,6 +201,16 @@ function updateGridLayout() {
     }
 }
 
+function clearPrimarySelection() {
+    const gridContainer = document.querySelector('.grid-container');
+    const primaryVideo = gridContainer.querySelector('.video-item.primary');
+    if (primaryVideo) {
+        primaryVideo.classList.remove('primary');
+    }
+    gridContainer.classList.remove('has-primary');
+    updateGridLayout();
+}
+
 function resetLayout() {
     const gridContainer = document.querySelector('.grid-container');
     gridContainer.classList.remove('has-primary');
