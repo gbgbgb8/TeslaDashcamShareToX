@@ -6,42 +6,11 @@
     <title>Tesla Dashcam Video Composer</title>
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/14.6.3/nouislider.min.css">
+    <script src="https://unpkg.com/preact@10.5.13/dist/preact.min.js"></script>
+    <script src="https://unpkg.com/preact@10.5.13/hooks/dist/hooks.umd.js"></script>
 </head>
 <body>
-    <div class="container">
-        <h1>Tesla Dashcam Video Composer</h1>
-        <div class="form-group">
-            <label for="source-folder">Select Source Folder:</label>
-            <input type="file" id="source-folder" webkitdirectory directory multiple>
-        </div>
-        <div class="form-group">
-            <label for="date-range">Select Date and Time Range:</label>
-            <div id="date-range" class="slider"></div>
-        </div>
-        <div class="form-group">
-            <label for="layout">Select Layout:</label>
-            <select id="layout">
-                <option value="cross">Cross</option>
-                <option value="corners">Corners</option>
-                <option value="diamond">Diamond</option>
-            </select>
-        </div>
-        <div class="form-group">
-            <label for="main-angle">Select Main Angle:</label>
-            <select id="main-angle">
-                <option value="front">Front</option>
-                <option value="back">Back</option>
-                <option value="left_repeater">Left Repeater</option>
-                <option value="right_repeater">Right Repeater</option>
-            </select>
-        </div>
-        <button id="compose-button">Compose Video</button>
-        <div class="video-preview" id="video-preview">
-            <!-- Video previews will be inserted here -->
-        </div>
-    </div>
-
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/14.6.3/nouislider.min.js"></script>
+    <div id="app"></div>
     <script src="script.js"></script>
 </body>
 </html>
