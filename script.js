@@ -1,12 +1,16 @@
 document.getElementById('fileInput').addEventListener('change', handleFileSelect);
+document.getElementById('dateTimeSelect').addEventListener('change', handleDateTimeChange);
+
+let videoGroups = {};
 
 function handleFileSelect(event) {
     const files = event.target.files;
     const fileList = document.getElementById('fileList');
-    const videoContainer = document.getElementById('videoContainer');
+    const dateTimeSelect = document.getElementById('dateTimeSelect');
     
     fileList.innerHTML = '';
-    videoContainer.innerHTML = '';
+    dateTimeSelect.innerHTML = '';
+    videoGroups = {};
 
     Array.from(files).forEach(file => {
         const listItem = document.createElement('li');
@@ -14,6 +18,43 @@ function handleFileSelect(event) {
         fileList.appendChild(listItem);
 
         if (file.type === 'video/mp4') {
+            const dateTime = extractDateTime(file.name);
+            if (!videoGroups[dateTime]) {
+                videoGroups[dateTime] = [];
+            }
+            videoGroups[dateTime].push(file);
+        }
+    });
+
+    // Populate the dateTimeSelect dropdown
+    Object.keys(videoGroups).forEach(dateTime => {
+        const option = document.createElement('option');
+        option.value = dateTime;
+        option.textContent = dateTime;
+        dateTimeSelect.appendChild(option);
+    });
+
+    // Automatically select the first option
+    if (dateTimeSelect.options.length > 0) {
+        dateTimeSelect.selectedIndex = 0;
+        handleDateTimeChange();
+    }
+}
+
+function extractDateTime(fileName) {
+    const match = fileName.match(/(\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2})/);
+    return match ? match[1] : 'Unknown';
+}
+
+function handleDateTimeChange() {
+    const dateTimeSelect = document.getElementById('dateTimeSelect');
+    const selectedDateTime = dateTimeSelect.value;
+    const videoContainer = document.getElementById('videoContainer');
+    
+    videoContainer.innerHTML = '';
+
+    if (videoGroups[selectedDateTime]) {
+        videoGroups[selectedDateTime].forEach(file => {
             const videoElement = document.createElement('video');
             videoElement.controls = true;
             videoElement.src = URL.createObjectURL(file);
@@ -22,15 +63,15 @@ function handleFileSelect(event) {
             videoElement.addEventListener('dragover', handleDragOver);
             videoElement.addEventListener('drop', handleDrop);
             videoContainer.appendChild(videoElement);
-        }
-    });
+        });
 
-    // Add export button
-    const exportButton = document.createElement('button');
-    exportButton.textContent = 'Export Selected Clips';
-    exportButton.className = 'btn btn-primary';
-    exportButton.addEventListener('click', exportClips);
-    videoContainer.appendChild(exportButton);
+        // Add export button
+        const exportButton = document.createElement('button');
+        exportButton.textContent = 'Export Selected Clips';
+        exportButton.className = 'btn btn-primary';
+        exportButton.addEventListener('click', exportClips);
+        videoContainer.appendChild(exportButton);
+    }
 }
 
 function handleDragStart(event) {
