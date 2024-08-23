@@ -13,20 +13,33 @@ document.getElementById('source-folder').addEventListener('change', function() {
         const minDate = new Date(Math.min(...dates));
         const maxDate = new Date(Math.max(...dates));
 
-        document.getElementById('start-date').min = minDate.toISOString().slice(0, 16);
-        document.getElementById('start-date').max = maxDate.toISOString().slice(0, 16);
-        document.getElementById('end-date').min = minDate.toISOString().slice(0, 16);
-        document.getElementById('end-date').max = maxDate.toISOString().slice(0, 16);
+        const dateRangeSlider = document.getElementById('date-range');
+        noUiSlider.create(dateRangeSlider, {
+            start: [minDate.getTime(), maxDate.getTime()],
+            connect: true,
+            range: {
+                'min': minDate.getTime(),
+                'max': maxDate.getTime()
+            },
+            format: {
+                to: value => new Date(value).toISOString().slice(0, 16).replace('T', ' '),
+                from: value => new Date(value).getTime()
+            }
+        });
 
-        document.getElementById('start-date').value = minDate.toISOString().slice(0, 16);
-        document.getElementById('end-date').value = maxDate.toISOString().slice(0, 16);
+        dateRangeSlider.noUiSlider.on('update', function(values, handle) {
+            const startDate = new Date(values[0]);
+            const endDate = new Date(values[1]);
+            console.log('Start Date:', startDate);
+            console.log('End Date:', endDate);
+        });
     }
 });
 
 document.getElementById('compose-button').addEventListener('click', function() {
     const sourceFolder = document.getElementById('source-folder').files;
-    const startDate = document.getElementById('start-date').value;
-    const endDate = document.getElementById('end-date').value;
+    const dateRangeSlider = document.getElementById('date-range').noUiSlider;
+    const [startDate, endDate] = dateRangeSlider.get().map(value => new Date(value));
     const layout = document.getElementById('layout').value;
     const mainAngle = document.getElementById('main-angle').value;
 
@@ -39,12 +52,18 @@ document.getElementById('compose-button').addEventListener('click', function() {
 
     // Display video previews (for demonstration purposes)
     const videoPreview = document.getElementById('video-preview');
-    videoPreview.innerHTML = `
-        <video controls>
-            <source src="path/to/front.mp4" type="video/mp4">
-        </video>
-        <video controls>
-            <source src="path/to/back.mp4" type="video/mp4">
-        </video>
-    `;
+    videoPreview.innerHTML = '';
+
+    const angles = ['front', 'back', 'left_repeater', 'right_repeater'];
+    angles.forEach(angle => {
+        const file = Array.from(sourceFolder).find(file => file.name.includes(angle));
+        if (file) {
+            const videoUrl = URL.createObjectURL(file);
+            videoPreview.innerHTML += `
+                <video controls>
+                    <source src="${videoUrl}" type="video/mp4">
+                </video>
+            `;
+        }
+    });
 });
