@@ -6,19 +6,13 @@ let videos = [];
 
 function handleFileSelect(event) {
     const files = event.target.files;
-    const fileList = document.getElementById('fileList');
     const dateTimeSelect = document.getElementById('dateTimeSelect');
     
-    fileList.innerHTML = '';
     dateTimeSelect.innerHTML = '';
     videoGroups = {};
     videos = [];
 
     Array.from(files).forEach(file => {
-        const listItem = document.createElement('li');
-        listItem.textContent = file.name;
-        fileList.appendChild(listItem);
-
         if (file.type === 'video/mp4') {
             const dateTime = extractDateTime(file.name);
             if (!videoGroups[dateTime]) {
