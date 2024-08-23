@@ -77,6 +77,7 @@ function handleDateTimeChange() {
             videoItem.addEventListener('dragstart', handleDragStart);
             videoItem.addEventListener('dragover', handleDragOver);
             videoItem.addEventListener('drop', handleDrop);
+            videoItem.addEventListener('dragend', handleDragEnd);
 
             const label = document.createElement('label');
             label.className = 'video-label';
@@ -172,10 +173,10 @@ function handleDrop(event) {
             targetElement.before(draggedElement);
         }
     }
+}
 
-    setTimeout(() => {
-        draggedElement.style.visibility = 'visible';
-    }, 50);
+function handleDragEnd(event) {
+    event.target.style.visibility = 'visible';
 }
 
 function handlePlay(event) {
