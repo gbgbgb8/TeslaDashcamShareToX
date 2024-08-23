@@ -89,190 +89,151 @@ function handleDateTimeChange() {
     videos = [];
 
     if (videoGroups[selectedDateTime]) {
+        const gridContainer = document.createElement('div');
+        gridContainer.className = 'grid-container';
+        videoContainer.appendChild(gridContainer);
+
         videoGroups[selectedDateTime].forEach((videoData, index) => {
-            const videoItem = document.createElement('div');
-            videoItem.className = 'video-item';
-            videoItem.id = `video-item-${videoIdCounter++}`;
-            videoItem.draggable = true;
-            videoItem.addEventListener('dragstart', handleDragStart);
-            videoItem.addEventListener('dragover', handleDragOver);
-            videoItem.addEventListener('drop', handleDrop);
-            videoItem.addEventListener('dragend', handleDragEnd);
-            videoItem.addEventListener('touchstart', handleTouchStart);
-            videoItem.addEventListener('touchmove', handleTouchMove);
-            videoItem.addEventListener('touchend', handleTouchEnd);
-
-            const label = document.createElement('div');
-            label.className = 'video-label';
-            label.textContent = extractCameraType(videoData.file.name);
-            videoItem.appendChild(label);
-
-            const videoElement = document.createElement('video');
-            videoElement.controls = true;
-            videoElement.src = URL.createObjectURL(videoData.file);
-            videoElement.addEventListener('play', handlePlay);
-            videoElement.addEventListener('pause', handlePause);
-            videoElement.addEventListener('timeupdate', handleTimeUpdate);
-            videoItem.appendChild(videoElement);
-
-            const controls = document.createElement('div');
-            controls.className = 'video-controls';
-
-            const visibilityCheckbox = document.createElement('input');
-            visibilityCheckbox.type = 'checkbox';
-            visibilityCheckbox.className = 'form-check-input';
-            visibilityCheckbox.checked = true;
-            visibilityCheckbox.addEventListener('change', () => {
-                videoItem.style.display = visibilityCheckbox.checked ? 'flex' : 'none';
-                updateGridLayout();
-            });
-            const visibilityLabel = document.createElement('label');
-            visibilityLabel.className = 'form-check-label';
-            visibilityLabel.appendChild(visibilityCheckbox);
-            visibilityLabel.appendChild(document.createTextNode(' Visible'));
-            controls.appendChild(visibilityLabel);
-
-            // Add primary button
-            const primaryButton = document.createElement('button');
-            primaryButton.textContent = 'Set Primary';
-            primaryButton.className = 'btn btn-sm btn-outline-primary ms-2';
-            primaryButton.addEventListener('click', () => setPrimaryVideo(videoItem));
-            controls.appendChild(primaryButton);
-
-            videoItem.appendChild(controls);
-            videoContainer.appendChild(videoItem);
-            videos.push(videoElement);
-
-            videoItem.dataset.index = index;
+            const videoItem = createVideoItem(videoData, index);
+            gridContainer.appendChild(videoItem);
+            videos.push(videoItem.querySelector('video'));
         });
 
-        gridLayout = Array.from({ length: videoGroups[selectedDateTime].length }, (_, i) => i);
-        updateGridLayout();
+        initializeGridLayout();
     }
 }
 
-function setPrimaryVideo(videoItem) {
-    const videoItems = Array.from(document.querySelectorAll('.video-item'));
-    videoItems.forEach(item => item.classList.remove('primary'));
-    videoItem.classList.add('primary');
+function createVideoItem(videoData, index) {
+    const videoItem = document.createElement('div');
+    videoItem.className = 'video-item';
+    videoItem.id = `video-item-${videoIdCounter++}`;
+    videoItem.dataset.index = index;
+
+    const label = document.createElement('div');
+    label.className = 'video-label';
+    label.textContent = extractCameraType(videoData.file.name);
+    videoItem.appendChild(label);
+
+    const videoElement = document.createElement('video');
+    videoElement.controls = true;
+    videoElement.src = URL.createObjectURL(videoData.file);
+    videoElement.addEventListener('play', handlePlay);
+    videoElement.addEventListener('pause', handlePause);
+    videoElement.addEventListener('timeupdate', handleTimeUpdate);
+    videoItem.appendChild(videoElement);
+
+    const controls = createVideoControls(videoItem);
+    videoItem.appendChild(controls);
+
+    return videoItem;
+}
+
+function createVideoControls(videoItem) {
+    const controls = document.createElement('div');
+    controls.className = 'video-controls';
+
+    const visibilityToggle = document.createElement('button');
+    visibilityToggle.className = 'btn btn-sm btn-outline-light';
+    visibilityToggle.innerHTML = '<i class="fas fa-eye"></i>';
+    visibilityToggle.addEventListener('click', () => toggleVideoVisibility(videoItem));
+    controls.appendChild(visibilityToggle);
+
+    const primaryToggle = document.createElement('button');
+    primaryToggle.className = 'btn btn-sm btn-outline-primary';
+    primaryToggle.innerHTML = '<i class="fas fa-expand"></i>';
+    primaryToggle.addEventListener('click', () => togglePrimaryVideo(videoItem));
+    controls.appendChild(primaryToggle);
+
+    return controls;
+}
+
+function toggleVideoVisibility(videoItem) {
+    videoItem.classList.toggle('hidden');
+    updateGridLayout();
+}
+
+function togglePrimaryVideo(videoItem) {
+    const isPrimary = videoItem.classList.toggle('primary');
+    const gridContainer = document.querySelector('.grid-container');
+    
+    if (isPrimary) {
+        gridContainer.classList.add('has-primary');
+        Array.from(gridContainer.children).forEach(item => {
+            if (item !== videoItem) item.classList.remove('primary');
+        });
+    } else {
+        gridContainer.classList.remove('has-primary');
+    }
+    
+    updateGridLayout();
+}
+
+function initializeGridLayout() {
+    const gridContainer = document.querySelector('.grid-container');
+    new Sortable(gridContainer, {
+        animation: 150,
+        onEnd: updateGridLayout
+    });
     updateGridLayout();
 }
 
 function updateGridLayout() {
-    const videoContainer = document.getElementById('videoContainer');
-    const videoItems = Array.from(videoContainer.querySelectorAll('.video-item'));
-    const primaryVideo = videoContainer.querySelector('.video-item.primary');
-    const visibleVideos = videoItems.filter(item => item.style.display !== 'none');
+    const gridContainer = document.querySelector('.grid-container');
+    const videoItems = Array.from(gridContainer.children).filter(item => !item.classList.contains('hidden'));
+    const hasPrimary = gridContainer.classList.contains('has-primary');
 
-    if (primaryVideo) {
-        primaryVideo.style.width = '100%';
-        primaryVideo.style.height = '100%';
-        primaryVideo.style.top = '0';
-        primaryVideo.style.left = '0';
-        primaryVideo.style.zIndex = '1';
+    if (hasPrimary) {
+        const primaryVideo = videoItems.find(item => item.classList.contains('primary'));
+        const secondaryVideos = videoItems.filter(item => !item.classList.contains('primary'));
 
-        const secondaryVideos = visibleVideos.filter(item => !item.classList.contains('primary'));
-        const positions = [
-            { top: '0', left: '50%' },
-            { top: '50%', left: '0' },
-            { top: '50%', left: '50%' }
-        ];
-
-        secondaryVideos.forEach((video, index) => {
-            video.style.width = '50%';
-            video.style.height = '50%';
-            video.style.top = positions[index].top;
-            video.style.left = positions[index].left;
-            video.style.zIndex = '2';
+        primaryVideo.style.gridArea = '1 / 1 / 3 / 3';
+        secondaryVideos.forEach((item, index) => {
+            const row = Math.floor(index / 2) + 1;
+            const col = (index % 2) + 3;
+            item.style.gridArea = `${row} / ${col} / ${row + 1} / ${col + 1}`;
         });
     } else {
-        const gridSize = Math.ceil(Math.sqrt(visibleVideos.length));
-        visibleVideos.forEach((video, index) => {
-            const row = Math.floor(index / gridSize);
-            const col = index % gridSize;
-            video.style.width = `${100 / gridSize}%`;
-            video.style.height = `${100 / gridSize}%`;
-            video.style.top = `${(row * 100) / gridSize}%`;
-            video.style.left = `${(col * 100) / gridSize}%`;
-            video.style.zIndex = '1';
+        videoItems.forEach((item, index) => {
+            const row = Math.floor(index / 2) + 1;
+            const col = (index % 2) + 1;
+            item.style.gridArea = `${row} / ${col} / ${row + 1} / ${col + 1}`;
         });
     }
+}
 
-    // Ensure all videos are visible and clickable
-    videoItems.forEach(video => {
-        video.style.pointerEvents = 'auto';
+function resetLayout() {
+    const gridContainer = document.querySelector('.grid-container');
+    gridContainer.classList.remove('has-primary');
+    Array.from(gridContainer.children).forEach(item => {
+        item.classList.remove('primary', 'hidden');
     });
+    updateGridLayout();
 }
 
-function handleDrop(event) {
-    event.preventDefault();
-    const draggedId = event.dataTransfer.getData('text/plain');
-    const draggedElement = document.getElementById(draggedId);
-    moveVideoItem(draggedElement, event.clientX, event.clientY);
-}
-
-function handleTouchEnd(event) {
-    const videoItem = event.target.closest('.video-item');
-    videoItem.style.transform = '';
-    videoItem.classList.remove('dragging');
+function setStandardLayout() {
+    const gridContainer = document.querySelector('.grid-container');
+    const videoItems = Array.from(gridContainer.children);
     
-    const touch = event.changedTouches[0];
-    moveVideoItem(videoItem, touch.clientX, touch.clientY);
-}
+    videoItems.forEach(item => {
+        const cameraType = item.querySelector('.video-label').textContent;
+        switch (cameraType) {
+            case 'Front':
+                item.classList.add('primary');
+                item.classList.remove('hidden');
+                break;
+            case 'Back':
+                item.classList.add('hidden');
+                item.classList.remove('primary');
+                break;
+            case 'Left':
+            case 'Right':
+                item.classList.remove('hidden', 'primary');
+                break;
+        }
+    });
 
-function moveVideoItem(videoItem, clientX, clientY) {
-    const videoContainer = document.getElementById('videoContainer');
-    const rect = videoContainer.getBoundingClientRect();
-    const x = clientX - rect.left;
-    const y = clientY - rect.top;
-
-    // Calculate the drop position
-    const dropX = Math.floor(x / (rect.width / 2)) * 50;
-    const dropY = Math.floor(y / (rect.height / 2)) * 50;
-
-    // Set the position of the dragged element
-    videoItem.style.left = `${dropX}%`;
-    videoItem.style.top = `${dropY}%`;
-
-    // If dropped on another video, swap their positions
-    const targetElement = document.elementFromPoint(clientX, clientY).closest('.video-item');
-    if (targetElement && targetElement !== videoItem) {
-        const targetX = targetElement.style.left;
-        const targetY = targetElement.style.top;
-        targetElement.style.left = videoItem.style.left;
-        targetElement.style.top = videoItem.style.top;
-        videoItem.style.left = targetX;
-        videoItem.style.top = targetY;
-    }
-
-    // Update the gridLayout array
-    const videoItems = Array.from(videoContainer.querySelectorAll('.video-item'));
-    gridLayout = videoItems.map(item => parseInt(item.dataset.index));
-
-    // Don't call updateGridLayout() here to preserve manual positioning
-}
-
-function clearPrimarySelection() {
-    const primaryVideo = document.querySelector('.video-item.primary');
-    if (primaryVideo) {
-        primaryVideo.classList.remove('primary');
-        updateGridLayout();
-    }
-}
-
-function handleDragStart(event) {
-    event.dataTransfer.setData('text/plain', event.target.id);
-    setTimeout(() => {
-        event.target.style.visibility = 'hidden';
-    }, 50);
-}
-
-function handleDragOver(event) {
-    event.preventDefault();
-}
-
-function handleDragEnd(event) {
-    event.target.style.visibility = 'visible';
+    gridContainer.classList.add('has-primary');
+    updateGridLayout();
 }
 
 function handlePlay(event) {
@@ -300,24 +261,6 @@ function handleTimeUpdate(event) {
     });
 }
 
-function handleTouchStart(event) {
-    const touch = event.touches[0];
-    const videoItem = event.target.closest('.video-item');
-    videoItem.dataset.touchStartX = touch.clientX;
-    videoItem.dataset.touchStartY = touch.clientY;
-    videoItem.classList.add('dragging');
-}
-
-function handleTouchMove(event) {
-    event.preventDefault();
-    const touch = event.touches[0];
-    const videoItem = event.target.closest('.video-item');
-    const deltaX = touch.clientX - videoItem.dataset.touchStartX;
-    const deltaY = touch.clientY - videoItem.dataset.touchStartY;
-    
-    videoItem.style.transform = `translate(${deltaX}px, ${deltaY}px)`;
-}
-
 function exportClips() {
     const selectedVideos = Array.from(document.querySelectorAll('video'));
     const exportData = selectedVideos.map(video => video.src);
@@ -326,64 +269,6 @@ function exportClips() {
     console.log('Exporting clips:', exportData);
 
     // Implement actual export logic here (e.g., creating a zip file)
-}
-
-function resetLayout() {
-    const videoItems = Array.from(document.querySelectorAll('.video-item'));
-    videoItems.forEach(item => {
-        item.style.display = 'flex';
-        item.classList.remove('primary');
-    });
-    gridLayout = Array.from({ length: videoItems.length }, (_, i) => i);
-    repositionVideos();
-    updateGridLayout();
-}
-
-function setStandardLayout() {
-    const videoItems = Array.from(document.querySelectorAll('.video-item'));
-    videoItems.forEach(item => {
-        const cameraType = item.querySelector('.video-label').textContent;
-        switch (cameraType) {
-            case 'Front':
-                item.style.display = 'flex';
-                item.classList.add('primary');
-                break;
-            case 'Back':
-                item.style.display = 'none';
-                break;
-            case 'Left':
-                item.style.display = 'flex';
-                item.classList.remove('primary');
-                break;
-            case 'Right':
-                item.style.display = 'flex';
-                item.classList.remove('primary');
-                break;
-        }
-    });
-    
-    gridLayout = ['Front', 'Left', 'Right', 'Back'].map(type => 
-        videoItems.findIndex(item => item.querySelector('.video-label').textContent === type)
-    );
-    
-    repositionVideos();
-    updateGridLayout();
-}
-
-// Add this function to handle manual repositioning
-function repositionVideos() {
-    const videoContainer = document.getElementById('videoContainer');
-    const videoItems = Array.from(videoContainer.querySelectorAll('.video-item'));
-    
-    gridLayout.forEach((index, position) => {
-        const video = videoItems.find(item => parseInt(item.dataset.index) === index);
-        if (video) {
-            const row = Math.floor(position / 2);
-            const col = position % 2;
-            video.style.top = `${row * 50}%`;
-            video.style.left = `${col * 50}%`;
-        }
-    });
 }
 
 // Add these event listeners at the end of the file
