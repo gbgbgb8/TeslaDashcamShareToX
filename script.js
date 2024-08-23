@@ -2,6 +2,7 @@ document.getElementById('fileInput').addEventListener('change', handleFileSelect
 document.getElementById('dateTimeSelect').addEventListener('change', handleDateTimeChange);
 
 let videoGroups = {};
+let videos = [];
 
 function handleFileSelect(event) {
     const files = event.target.files;
@@ -11,6 +12,7 @@ function handleFileSelect(event) {
     fileList.innerHTML = '';
     dateTimeSelect.innerHTML = '';
     videoGroups = {};
+    videos = [];
 
     Array.from(files).forEach(file => {
         const listItem = document.createElement('li');
@@ -52,6 +54,7 @@ function handleDateTimeChange() {
     const videoContainer = document.getElementById('videoContainer');
     
     videoContainer.innerHTML = '';
+    videos = [];
 
     if (videoGroups[selectedDateTime]) {
         videoGroups[selectedDateTime].forEach(file => {
@@ -62,7 +65,11 @@ function handleDateTimeChange() {
             videoElement.addEventListener('dragstart', handleDragStart);
             videoElement.addEventListener('dragover', handleDragOver);
             videoElement.addEventListener('drop', handleDrop);
+            videoElement.addEventListener('play', handlePlay);
+            videoElement.addEventListener('pause', handlePause);
+            videoElement.addEventListener('timeupdate', handleTimeUpdate);
             videoContainer.appendChild(videoElement);
+            videos.push(videoElement);
         });
 
         // Add export button
@@ -100,6 +107,31 @@ function handleDrop(event) {
             targetElement.before(draggedElement);
         }
     }
+}
+
+function handlePlay(event) {
+    videos.forEach(video => {
+        if (video !== event.target) {
+            video.currentTime = event.target.currentTime;
+            video.play();
+        }
+    });
+}
+
+function handlePause(event) {
+    videos.forEach(video => {
+        if (video !== event.target) {
+            video.pause();
+        }
+    });
+}
+
+function handleTimeUpdate(event) {
+    videos.forEach(video => {
+        if (video !== event.target && Math.abs(video.currentTime - event.target.currentTime) > 0.1) {
+            video.currentTime = event.target.currentTime;
+        }
+    });
 }
 
 function exportClips() {
