@@ -48,6 +48,23 @@ function extractDateTime(fileName) {
     return match ? match[1] : 'Unknown';
 }
 
+function extractCameraType(fileName) {
+    const match = fileName.match(/-(front|back|left_repeater|right_repeater)\.mp4$/);
+    if (match) {
+        switch (match[1]) {
+            case 'front':
+                return 'Front';
+            case 'back':
+                return 'Back';
+            case 'left_repeater':
+                return 'Left';
+            case 'right_repeater':
+                return 'Right';
+        }
+    }
+    return 'Unknown';
+}
+
 function handleDateTimeChange() {
     const dateTimeSelect = document.getElementById('dateTimeSelect');
     const selectedDateTime = dateTimeSelect.value;
@@ -62,7 +79,7 @@ function handleDateTimeChange() {
             videoItem.className = 'video-item';
 
             const label = document.createElement('label');
-            label.textContent = file.name;
+            label.textContent = extractCameraType(file.name);
             videoItem.appendChild(label);
 
             const videoElement = document.createElement('video');
