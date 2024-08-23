@@ -11,7 +11,7 @@ body {
 .video-container {
     position: relative;
     width: 100%;
-    height: calc(100vh - 200px);
+    height: calc(100vh - 250px);
     min-height: 400px;
     background-color: #1a1a1a;
     border-radius: 8px;
@@ -28,11 +28,13 @@ body {
     border-radius: 8px;
     transition: all 0.3s ease;
     background-color: rgba(0, 0, 0, 0.5);
+    box-sizing: border-box;
 }
 
 .video-item video {
     width: 100%;
-    height: auto;
+    height: calc(100% - 60px);
+    object-fit: cover;
     border-radius: 4px;
 }
 

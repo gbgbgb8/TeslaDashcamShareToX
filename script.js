@@ -124,7 +124,7 @@ function handleDateTimeChange() {
             visibilityCheckbox.checked = true;
             visibilityCheckbox.addEventListener('change', () => {
                 videoItem.style.display = visibilityCheckbox.checked ? 'flex' : 'none';
-                updateVideoSizes();
+                updateGridLayout();
             });
             const visibilityLabel = document.createElement('label');
             visibilityLabel.className = 'form-check-label';
@@ -132,43 +132,53 @@ function handleDateTimeChange() {
             visibilityLabel.appendChild(document.createTextNode(' Visible'));
             controls.appendChild(visibilityLabel);
 
-            const primaryRadio = document.createElement('input');
-            primaryRadio.type = 'radio';
-            primaryRadio.className = 'form-check-input';
-            primaryRadio.name = 'primaryVideo';
-            primaryRadio.addEventListener('change', () => {
-                videos.forEach(v => v.closest('.video-item').classList.remove('primary'));
-                if (primaryRadio.checked) {
-                    videoItem.classList.add('primary');
-                }
-                updateVideoSizes();
-            });
-            const primaryLabel = document.createElement('label');
-            primaryLabel.className = 'form-check-label';
-            primaryLabel.appendChild(primaryRadio);
-            primaryLabel.appendChild(document.createTextNode(' Primary'));
-            controls.appendChild(primaryLabel);
-
             videoItem.appendChild(controls);
             videoContainer.appendChild(videoItem);
             videos.push(videoElement);
-
-            videoItem.dataset.index = index;
         });
 
-        const resetButton = document.createElement('button');
-        resetButton.textContent = 'Reset Layout';
-        resetButton.className = 'btn btn-secondary btn-sm mt-2';
-        resetButton.addEventListener('click', resetLayout);
-        videoContainer.appendChild(resetButton);
-
-        const standardButton = document.createElement('button');
-        standardButton.textContent = 'Standard Layout';
-        standardButton.className = 'btn btn-info btn-sm mt-2 ms-2';
-        standardButton.addEventListener('click', setStandardLayout);
-        videoContainer.appendChild(standardButton);
-
         gridLayout = Array.from({ length: videoGroups[selectedDateTime].length }, (_, i) => i);
+        updateGridLayout();
+    }
+}
+
+function updateGridLayout() {
+    const videoContainer = document.getElementById('videoContainer');
+    const videoItems = Array.from(videoContainer.querySelectorAll('.video-item'));
+    const visibleVideos = videoItems.filter(item => item.style.display !== 'none');
+
+    const columns = Math.ceil(Math.sqrt(visibleVideos.length));
+    const rows = Math.ceil(visibleVideos.length / columns);
+
+    visibleVideos.forEach((video, index) => {
+        const row = Math.floor(index / columns);
+        const col = index % columns;
+
+        video.style.width = `${100 / columns}%`;
+        video.style.height = `${100 / rows}%`;
+        video.style.top = `${(row * 100) / rows}%`;
+        video.style.left = `${(col * 100) / columns}%`;
+    });
+}
+
+function handleDrop(event) {
+    event.preventDefault();
+    const draggedId = event.dataTransfer.getData('text/plain');
+    const draggedElement = document.getElementById(draggedId);
+    const targetElement = event.target.closest('.video-item');
+
+    if (draggedElement && targetElement && draggedElement !== targetElement) {
+        const videoContainer = document.getElementById('videoContainer');
+        const videoItems = Array.from(videoContainer.querySelectorAll('.video-item'));
+        const draggedIndex = videoItems.indexOf(draggedElement);
+        const targetIndex = videoItems.indexOf(targetElement);
+
+        if (draggedIndex < targetIndex) {
+            targetElement.parentNode.insertBefore(draggedElement, targetElement.nextSibling);
+        } else {
+            targetElement.parentNode.insertBefore(draggedElement, targetElement);
+        }
+
         updateGridLayout();
     }
 }
@@ -181,71 +191,6 @@ function clearPrimarySelection() {
     videos.forEach(video => {
         video.closest('.video-item').classList.remove('primary');
     });
-    updateVideoSizes();
-}
-
-function updateGridLayout() {
-    const videoContainer = document.getElementById('videoContainer');
-    const videoItems = Array.from(videoContainer.querySelectorAll('.video-item'));
-    const primaryVideo = videoContainer.querySelector('.video-item.primary');
-    const visibleVideos = videoItems.filter(item => item.style.display !== 'none');
-
-    if (primaryVideo) {
-        // Handle primary video layout
-        primaryVideo.style.width = '100%';
-        primaryVideo.style.height = '100%';
-        primaryVideo.style.top = '0';
-        primaryVideo.style.left = '0';
-        primaryVideo.style.zIndex = '1';
-
-        const secondaryVideos = videoItems.filter(item => !item.classList.contains('primary'));
-        const secondaryWidth = '50%';
-        const secondaryHeight = '50%';
-
-        secondaryVideos.forEach((video, index) => {
-            video.classList.add('secondary');
-            video.style.width = secondaryWidth;
-            video.style.height = secondaryHeight;
-            video.style.zIndex = '2';
-
-            if (index === 0) {
-                video.style.top = '0';
-                video.style.left = '50%';
-            } else if (index === 1) {
-                video.style.top = '50%';
-                video.style.left = '0';
-            } else if (index === 2) {
-                video.style.top = '50%';
-                video.style.left = '50%';
-            }
-        });
-    } else {
-        // Handle grid layout without primary video
-        const videoCount = visibleVideos.length;
-        const columns = Math.ceil(Math.sqrt(videoCount));
-        const rows = Math.ceil(videoCount / columns);
-
-        let currentPosition = 0;
-        gridLayout.forEach((originalIndex) => {
-            const video = videoItems.find(item => parseInt(item.dataset.index) === originalIndex);
-            if (video.style.display !== 'none') {
-                const row = Math.floor(currentPosition / columns);
-                const col = currentPosition % columns;
-
-                video.style.width = `${100 / columns}%`;
-                video.style.height = `${100 / rows}%`;
-                video.style.top = `${(row * 100) / rows}%`;
-                video.style.left = `${(col * 100) / columns}%`;
-                video.style.zIndex = '1';
-                video.classList.remove('secondary');
-
-                currentPosition++;
-            }
-        });
-    }
-}
-
-function updateVideoSizes() {
     updateGridLayout();
 }
 
@@ -258,36 +203,6 @@ function handleDragStart(event) {
 
 function handleDragOver(event) {
     event.preventDefault();
-}
-
-function handleDrop(event) {
-    event.preventDefault();
-    const draggedId = event.dataTransfer.getData('text/plain');
-    const draggedElement = document.getElementById(draggedId);
-    const targetElement = event.target.closest('.video-item') || event.target.closest('.video-container');
-
-    if (draggedElement && targetElement) {
-        const videoContainer = document.getElementById('videoContainer');
-        const videoItems = Array.from(videoContainer.querySelectorAll('.video-item'));
-        const visibleVideos = videoItems.filter(item => item.style.display !== 'none');
-
-        let targetIndex;
-        if (targetElement.classList.contains('video-item')) {
-            targetIndex = visibleVideos.indexOf(targetElement);
-        } else {
-            // If dropped on an empty space, append to the end
-            targetIndex = visibleVideos.length;
-        }
-
-        const draggedIndex = visibleVideos.indexOf(draggedElement);
-
-        // Update the gridLayout array
-        const draggedOriginalIndex = parseInt(draggedElement.dataset.index);
-        gridLayout.splice(gridLayout.indexOf(draggedOriginalIndex), 1);
-        gridLayout.splice(targetIndex, 0, draggedOriginalIndex);
-
-        updateGridLayout();
-    }
 }
 
 function handleDragEnd(event) {
@@ -347,17 +262,19 @@ function handleTouchEnd(event) {
     const targetVideoItem = target.closest('.video-item');
     
     if (targetVideoItem && targetVideoItem !== videoItem) {
-        const draggedIndex = parseInt(videoItem.dataset.index);
-        const targetIndex = parseInt(targetVideoItem.dataset.index);
-
-        // Update the gridLayout array
-        const draggedPosition = gridLayout.indexOf(draggedIndex);
-        const targetPosition = gridLayout.indexOf(targetIndex);
-        gridLayout.splice(draggedPosition, 1);
-        gridLayout.splice(targetPosition, 0, draggedIndex);
-
-        updateGridLayout();
+        const videoContainer = document.getElementById('videoContainer');
+        const items = Array.from(videoContainer.children);
+        const fromIndex = items.indexOf(videoItem);
+        const toIndex = items.indexOf(targetVideoItem);
+        
+        if (fromIndex < toIndex) {
+            targetVideoItem.after(videoItem);
+        } else {
+            targetVideoItem.before(videoItem);
+        }
     }
+    
+    updateGridLayout();
 }
 
 function exportClips() {
@@ -413,3 +330,5 @@ function setStandardLayout() {
 // Add these event listeners at the end of the file
 document.getElementById('exportButton').addEventListener('click', exportClips);
 document.getElementById('clearPrimaryButton').addEventListener('click', clearPrimarySelection);
+document.getElementById('resetLayoutButton').addEventListener('click', resetLayout);
+document.getElementById('standardLayoutButton').addEventListener('click', setStandardLayout);
