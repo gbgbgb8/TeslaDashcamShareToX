@@ -1,3 +1,24 @@
+document.getElementById('source-folder').addEventListener('change', function() {
+    const files = Array.from(this.files);
+    const dates = files.map(file => {
+        const match = file.name.match(/(\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2})/);
+        return match ? new Date(match[1].replace(/_/g, ' ').replace(/-/g, ':')) : null;
+    }).filter(date => date !== null);
+
+    if (dates.length > 0) {
+        const minDate = new Date(Math.min(...dates));
+        const maxDate = new Date(Math.max(...dates));
+
+        document.getElementById('start-date').min = minDate.toISOString().slice(0, 16);
+        document.getElementById('start-date').max = maxDate.toISOString().slice(0, 16);
+        document.getElementById('end-date').min = minDate.toISOString().slice(0, 16);
+        document.getElementById('end-date').max = maxDate.toISOString().slice(0, 16);
+
+        document.getElementById('start-date').value = minDate.toISOString().slice(0, 16);
+        document.getElementById('end-date').value = maxDate.toISOString().slice(0, 16);
+    }
+});
+
 document.getElementById('compose-button').addEventListener('click', function() {
     const sourceFolder = document.getElementById('source-folder').files;
     const startDate = document.getElementById('start-date').value;
