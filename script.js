@@ -2,8 +2,12 @@ document.getElementById('source-folder').addEventListener('change', function() {
     const files = Array.from(this.files);
     const dates = files.map(file => {
         const match = file.name.match(/(\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2})/);
-        return match ? new Date(match[1].replace(/_/g, ' ').replace(/-/g, ':')) : null;
-    }).filter(date => date !== null);
+        if (match) {
+            const dateString = match[1].replace(/_/g, 'T').replace(/-/g, ':');
+            return new Date(dateString);
+        }
+        return null;
+    }).filter(date => date !== null && !isNaN(date.getTime()));
 
     if (dates.length > 0) {
         const minDate = new Date(Math.min(...dates));
