@@ -58,6 +58,13 @@ function handleDateTimeChange() {
 
     if (videoGroups[selectedDateTime]) {
         videoGroups[selectedDateTime].forEach(file => {
+            const videoItem = document.createElement('div');
+            videoItem.className = 'video-item';
+
+            const label = document.createElement('label');
+            label.textContent = file.name;
+            videoItem.appendChild(label);
+
             const videoElement = document.createElement('video');
             videoElement.controls = true;
             videoElement.src = URL.createObjectURL(file);
@@ -68,7 +75,9 @@ function handleDateTimeChange() {
             videoElement.addEventListener('play', handlePlay);
             videoElement.addEventListener('pause', handlePause);
             videoElement.addEventListener('timeupdate', handleTimeUpdate);
-            videoContainer.appendChild(videoElement);
+            videoItem.appendChild(videoElement);
+
+            videoContainer.appendChild(videoItem);
             videos.push(videoElement);
         });
 
