@@ -8,6 +8,9 @@
     display: flex;
     flex-direction: column;
     align-items: center;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
 }
 
 .video-item video {
@@ -23,11 +26,7 @@
     margin-bottom: 10px;
 }
 
-.file-list {
-    list-style: none;
-    padding: 0;
-}
-
-.file-list li {
-    margin: 5px 0;
+.video-label {
+    font-weight: bold;
+    margin-bottom: 5px;
 }

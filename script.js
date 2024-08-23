@@ -70,9 +70,10 @@ function handleDateTimeChange() {
     if (videoGroups[selectedDateTime]) {
         videoGroups[selectedDateTime].forEach(file => {
             const videoItem = document.createElement('div');
-            videoItem.className = 'video-item';
+            videoItem.className = 'video-item card';
 
             const label = document.createElement('label');
+            label.className = 'video-label';
             label.textContent = extractCameraType(file.name);
             videoItem.appendChild(label);
 
