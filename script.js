@@ -132,9 +132,29 @@ function handleDateTimeChange() {
             visibilityLabel.appendChild(document.createTextNode(' Visible'));
             controls.appendChild(visibilityLabel);
 
+            // Add back the primary radio button
+            const primaryRadio = document.createElement('input');
+            primaryRadio.type = 'radio';
+            primaryRadio.className = 'form-check-input ms-2';
+            primaryRadio.name = 'primaryVideo';
+            primaryRadio.addEventListener('change', () => {
+                videos.forEach(v => v.closest('.video-item').classList.remove('primary'));
+                if (primaryRadio.checked) {
+                    videoItem.classList.add('primary');
+                }
+                updateGridLayout();
+            });
+            const primaryLabel = document.createElement('label');
+            primaryLabel.className = 'form-check-label ms-1';
+            primaryLabel.appendChild(primaryRadio);
+            primaryLabel.appendChild(document.createTextNode(' Primary'));
+            controls.appendChild(primaryLabel);
+
             videoItem.appendChild(controls);
             videoContainer.appendChild(videoItem);
             videos.push(videoElement);
+
+            videoItem.dataset.index = index;
         });
 
         gridLayout = Array.from({ length: videoGroups[selectedDateTime].length }, (_, i) => i);
@@ -145,20 +165,44 @@ function handleDateTimeChange() {
 function updateGridLayout() {
     const videoContainer = document.getElementById('videoContainer');
     const videoItems = Array.from(videoContainer.querySelectorAll('.video-item'));
+    const primaryVideo = videoContainer.querySelector('.video-item.primary');
     const visibleVideos = videoItems.filter(item => item.style.display !== 'none');
 
-    const columns = Math.ceil(Math.sqrt(visibleVideos.length));
-    const rows = Math.ceil(visibleVideos.length / columns);
+    if (primaryVideo) {
+        // Handle primary video layout
+        primaryVideo.style.width = '100%';
+        primaryVideo.style.height = '100%';
+        primaryVideo.style.top = '0';
+        primaryVideo.style.left = '0';
+        primaryVideo.style.zIndex = '2';
 
-    visibleVideos.forEach((video, index) => {
-        const row = Math.floor(index / columns);
-        const col = index % columns;
+        const secondaryVideos = visibleVideos.filter(item => !item.classList.contains('primary'));
+        const secondaryWidth = '33.33%';
+        const secondaryHeight = '33.33%';
 
-        video.style.width = `${100 / columns}%`;
-        video.style.height = `${100 / rows}%`;
-        video.style.top = `${(row * 100) / rows}%`;
-        video.style.left = `${(col * 100) / columns}%`;
-    });
+        secondaryVideos.forEach((video, index) => {
+            video.style.width = secondaryWidth;
+            video.style.height = secondaryHeight;
+            video.style.top = `${Math.floor(index / 3) * 33.33}%`;
+            video.style.left = `${(index % 3) * 33.33}%`;
+            video.style.zIndex = '1';
+        });
+    } else {
+        // Handle grid layout without primary video
+        const columns = Math.ceil(Math.sqrt(visibleVideos.length));
+        const rows = Math.ceil(visibleVideos.length / columns);
+
+        visibleVideos.forEach((video, index) => {
+            const row = Math.floor(index / columns);
+            const col = index % columns;
+
+            video.style.width = `${100 / columns}%`;
+            video.style.height = `${100 / rows}%`;
+            video.style.top = `${(row * 100) / rows}%`;
+            video.style.left = `${(col * 100) / columns}%`;
+            video.style.zIndex = '1';
+        });
+    }
 }
 
 function handleDrop(event) {
