@@ -164,29 +164,39 @@ function updateGridLayout() {
     const primaryVideo = videoContainer.querySelector('.video-item.primary');
     const visibleVideos = videoItems.filter(item => item.style.display !== 'none');
 
-    const columns = Math.ceil(Math.sqrt(visibleVideos.length));
-    const rows = Math.ceil(visibleVideos.length / columns);
-
     if (primaryVideo) {
         primaryVideo.style.width = '100%';
         primaryVideo.style.height = '100%';
         primaryVideo.style.top = '0';
         primaryVideo.style.left = '0';
         primaryVideo.style.zIndex = '1';
-    }
 
-    visibleVideos.forEach((video, index) => {
-        if (!video.classList.contains('primary')) {
-            const row = Math.floor(index / columns);
-            const col = index % columns;
+        const secondaryVideos = visibleVideos.filter(item => !item.classList.contains('primary'));
+        const positions = [
+            { top: '0', left: '50%' },
+            { top: '50%', left: '0' },
+            { top: '50%', left: '50%' }
+        ];
 
-            video.style.width = `${100 / columns}%`;
-            video.style.height = `${100 / rows}%`;
-            video.style.top = `${(row * 100) / rows}%`;
-            video.style.left = `${(col * 100) / columns}%`;
+        secondaryVideos.forEach((video, index) => {
+            video.style.width = '50%';
+            video.style.height = '50%';
+            video.style.top = positions[index].top;
+            video.style.left = positions[index].left;
             video.style.zIndex = '2';
-        }
-    });
+        });
+    } else {
+        const gridSize = Math.ceil(Math.sqrt(visibleVideos.length));
+        visibleVideos.forEach((video, index) => {
+            const row = Math.floor(index / gridSize);
+            const col = index % gridSize;
+            video.style.width = `${100 / gridSize}%`;
+            video.style.height = `${100 / gridSize}%`;
+            video.style.top = `${(row * 100) / gridSize}%`;
+            video.style.left = `${(col * 100) / gridSize}%`;
+            video.style.zIndex = '1';
+        });
+    }
 
     // Ensure all videos are visible and clickable
     videoItems.forEach(video => {
@@ -198,31 +208,30 @@ function handleDrop(event) {
     event.preventDefault();
     const draggedId = event.dataTransfer.getData('text/plain');
     const draggedElement = document.getElementById(draggedId);
-    const targetElement = event.target.closest('.video-item') || event.target.closest('.video-container');
+    const videoContainer = document.getElementById('videoContainer');
+    const rect = videoContainer.getBoundingClientRect();
+    const x = event.clientX - rect.left;
+    const y = event.clientY - rect.top;
 
-    if (draggedElement && targetElement) {
-        const videoContainer = document.getElementById('videoContainer');
-        const videoItems = Array.from(videoContainer.querySelectorAll('.video-item'));
-        const visibleVideos = videoItems.filter(item => item.style.display !== 'none');
+    if (draggedElement) {
+        // Calculate the drop position
+        const dropX = Math.floor(x / (rect.width / 2)) * 50;
+        const dropY = Math.floor(y / (rect.height / 2)) * 50;
 
-        let targetIndex;
-        if (targetElement.classList.contains('video-item')) {
-            targetIndex = visibleVideos.indexOf(targetElement);
-        } else {
-            // If dropped on an empty space, append to the end
-            targetIndex = visibleVideos.length;
+        // Set the position of the dragged element
+        draggedElement.style.left = `${dropX}%`;
+        draggedElement.style.top = `${dropY}%`;
+
+        // If dropped on another video, swap their positions
+        const targetElement = event.target.closest('.video-item');
+        if (targetElement && targetElement !== draggedElement) {
+            const targetX = targetElement.style.left;
+            const targetY = targetElement.style.top;
+            targetElement.style.left = draggedElement.style.left;
+            targetElement.style.top = draggedElement.style.top;
+            draggedElement.style.left = targetX;
+            draggedElement.style.top = targetY;
         }
-
-        const draggedIndex = visibleVideos.indexOf(draggedElement);
-
-        // Update the order of visible videos
-        if (draggedIndex !== -1) {
-            visibleVideos.splice(draggedIndex, 1);
-        }
-        visibleVideos.splice(targetIndex, 0, draggedElement);
-
-        // Reorder the videos in the DOM
-        visibleVideos.forEach(video => videoContainer.appendChild(video));
 
         updateGridLayout();
     }
@@ -281,6 +290,7 @@ function handleTouchStart(event) {
     const videoItem = event.target.closest('.video-item');
     videoItem.dataset.touchStartX = touch.clientX;
     videoItem.dataset.touchStartY = touch.clientY;
+    videoItem.classList.add('dragging');
 }
 
 function handleTouchMove(event) {
@@ -291,7 +301,6 @@ function handleTouchMove(event) {
     const deltaY = touch.clientY - videoItem.dataset.touchStartY;
     
     videoItem.style.transform = `translate(${deltaX}px, ${deltaY}px)`;
-    videoItem.classList.add('dragging');
 }
 
 function handleTouchEnd(event) {
@@ -300,22 +309,30 @@ function handleTouchEnd(event) {
     videoItem.classList.remove('dragging');
     
     const touch = event.changedTouches[0];
-    const target = document.elementFromPoint(touch.clientX, touch.clientY);
-    const targetVideoItem = target.closest('.video-item');
-    
-    if (targetVideoItem && targetVideoItem !== videoItem) {
-        const videoContainer = document.getElementById('videoContainer');
-        const items = Array.from(videoContainer.children);
-        const fromIndex = items.indexOf(videoItem);
-        const toIndex = items.indexOf(targetVideoItem);
-        
-        if (fromIndex < toIndex) {
-            targetVideoItem.after(videoItem);
-        } else {
-            targetVideoItem.before(videoItem);
-        }
+    const videoContainer = document.getElementById('videoContainer');
+    const rect = videoContainer.getBoundingClientRect();
+    const x = touch.clientX - rect.left;
+    const y = touch.clientY - rect.top;
+
+    // Calculate the drop position
+    const dropX = Math.floor(x / (rect.width / 2)) * 50;
+    const dropY = Math.floor(y / (rect.height / 2)) * 50;
+
+    // Set the position of the dragged element
+    videoItem.style.left = `${dropX}%`;
+    videoItem.style.top = `${dropY}%`;
+
+    // If dropped on another video, swap their positions
+    const targetElement = document.elementFromPoint(touch.clientX, touch.clientY).closest('.video-item');
+    if (targetElement && targetElement !== videoItem) {
+        const targetX = targetElement.style.left;
+        const targetY = targetElement.style.top;
+        targetElement.style.left = videoItem.style.left;
+        targetElement.style.top = videoItem.style.top;
+        videoItem.style.left = targetX;
+        videoItem.style.top = targetY;
     }
-    
+
     updateGridLayout();
 }
 
