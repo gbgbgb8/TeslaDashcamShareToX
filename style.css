@@ -11,12 +11,27 @@
     padding: 10px;
     border: 1px solid #ccc;
     border-radius: 4px;
+    transition: all 0.3s ease;
 }
 
 .video-item video {
     width: 100%;
     max-width: 300px;
     margin: 10px 0;
+}
+
+.video-item.primary {
+    grid-column: span 2;
+    grid-row: span 2;
+}
+
+.video-item.primary video {
+    width: 100%;
+    max-width: none;
+}
+
+.video-item.secondary {
+    width: 50%;
 }
 
 .video-controls {

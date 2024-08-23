@@ -100,6 +100,7 @@ function handleDateTimeChange() {
             visibilityCheckbox.checked = true;
             visibilityCheckbox.addEventListener('change', () => {
                 videoElement.style.display = visibilityCheckbox.checked ? 'block' : 'none';
+                updateVideoSizes();
             });
             controls.appendChild(visibilityCheckbox);
 
@@ -109,8 +110,9 @@ function handleDateTimeChange() {
             primaryRadio.addEventListener('change', () => {
                 videos.forEach(v => v.classList.remove('primary'));
                 if (primaryRadio.checked) {
-                    videoElement.classList.add('primary');
+                    videoItem.classList.add('primary');
                 }
+                updateVideoSizes();
             });
             controls.appendChild(primaryRadio);
 
@@ -142,6 +144,17 @@ function clearPrimarySelection() {
     });
     videos.forEach(video => {
         video.classList.remove('primary');
+    });
+    updateVideoSizes();
+}
+
+function updateVideoSizes() {
+    const primaryVideo = document.querySelector('.video-item.primary');
+    videos.forEach(video => {
+        const videoItem = video.closest('.video-item');
+        if (videoItem !== primaryVideo) {
+            videoItem.classList.toggle('secondary', primaryVideo !== null);
+        }
     });
 }
 
