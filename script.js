@@ -185,6 +185,14 @@ function toggleVideoVisibility(videoItem) {
     console.log('toggleVideoVisibility called for', videoItem);
     videoItem.classList.toggle('hidden');
     console.log('Hidden class toggled. Is hidden:', videoItem.classList.contains('hidden'));
+    
+    // Force update of the video item's style
+    if (videoItem.classList.contains('hidden')) {
+        videoItem.style.display = 'none';
+    } else {
+        videoItem.style.display = 'block';
+    }
+    
     updateGridLayout();
 }
 
@@ -305,7 +313,13 @@ function updateGridLayout() {
 
     videoItems.forEach(item => {
         const cameraType = item.querySelector('.video-label').textContent.toLowerCase();
+        
+        // Preserve the 'hidden' class if it exists
+        const isHidden = item.classList.contains('hidden');
         item.className = `video-item ${cameraType}`;
+        if (isHidden) {
+            item.classList.add('hidden');
+        }
         
         if (item.classList.contains('hidden')) {
             console.log('Video item is hidden:', item);
