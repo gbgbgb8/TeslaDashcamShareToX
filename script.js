@@ -352,10 +352,10 @@ function checkToggleButtons() {
 
 // Add this new function to toggle UI elements
 function toggleUI() {
-    const videoContainer = document.getElementById('videoContainer');
-    videoContainer.classList.toggle('hide-ui');
+    const gridContainer = document.querySelector('.grid-container');
+    gridContainer.classList.toggle('hide-ui');
     
-    const buttonText = videoContainer.classList.contains('hide-ui') ? 'Show UI' : 'Hide UI';
+    const buttonText = gridContainer.classList.contains('hide-ui') ? 'Show UI' : 'Hide UI';
     document.getElementById('toggleUIButton').textContent = buttonText;
 }
 
