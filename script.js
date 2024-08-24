@@ -183,12 +183,15 @@ function togglePrimaryVideo(videoItem) {
 
     if (currentPrimary === videoItem) {
         videoItem.classList.remove('primary');
+        videoItem.classList.add('secondary');
         gridContainer.classList.remove('has-primary');
     } else {
         if (currentPrimary) {
             currentPrimary.classList.remove('primary');
+            currentPrimary.classList.add('secondary');
         }
         videoItem.classList.add('primary');
+        videoItem.classList.remove('secondary');
         gridContainer.classList.add('has-primary');
     }
 
@@ -230,16 +233,22 @@ function updateGridLayout() {
         const primaryVideo = videoItems.find(item => item.classList.contains('primary'));
         const secondaryVideos = videoItems.filter(item => !item.classList.contains('primary'));
 
-        primaryVideo.style.gridColumn = 'span 2';
-        primaryVideo.style.gridRow = 'span 2';
+        primaryVideo.style.width = '100%';
+        primaryVideo.style.height = '100%';
         secondaryVideos.forEach((item, index) => {
-            item.style.gridColumn = '';
-            item.style.gridRow = '';
+            item.style.width = '20%';
+            item.style.height = '20%';
+            item.style.top = `${index * 25}%`;
+            item.style.left = `${index * 25}%`;
         });
     } else {
         videoItems.forEach((item, index) => {
-            item.style.gridColumn = '';
-            item.style.gridRow = '';
+            item.style.width = '50%';
+            item.style.height = '50%';
+            const row = Math.floor(index / 2);
+            const col = index % 2;
+            item.style.top = `${row * 50}%`;
+            item.style.left = `${col * 50}%`;
         });
     }
 }
