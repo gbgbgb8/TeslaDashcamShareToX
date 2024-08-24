@@ -40,7 +40,9 @@ function updatePlayPauseButton() {
 
 function playAllVideos() {
     videos.forEach(video => {
-        video.play().catch(e => console.error("Error playing video:", e));
+        video.play().catch(e => {
+            // Silently handle errors
+        });
     });
 }
 
@@ -58,7 +60,9 @@ function handlePlay(event) {
     videos.forEach(video => {
         if (video !== event.target) {
             video.currentTime = event.target.currentTime;
-            video.play().catch(e => console.error("Error playing video:", e));
+            video.play().catch(e => {
+                // Silently handle errors
+            });
         }
     });
 }
@@ -251,10 +255,8 @@ function createVideoControls(videoItem) {
 }
 
 function toggleVideoVisibility(videoItem) {
-    console.log('toggleVideoVisibility called for', videoItem);
     videoItem.classList.toggle('hidden');
     const isHidden = videoItem.classList.contains('hidden');
-    console.log('Hidden class toggled. Is hidden:', isHidden);
     
     // Force update of the video item's style
     videoItem.style.display = isHidden ? 'none' : 'block';
@@ -288,13 +290,14 @@ function togglePrimaryVideo(event) {
     }
 
     updateGridLayout();
+    
+    // Pause all videos when switching primary video
     pauseAllVideos();
     isPlaying = false;
     updatePlayPauseButton();
 }
 
 function updateGridLayout() {
-    console.log('updateGridLayout called');
     const gridContainer = document.querySelector('.grid-container');
     const videoItems = Array.from(gridContainer.querySelectorAll('.video-item'));
     const primaryVideo = gridContainer.querySelector('.video-item.primary');
@@ -314,10 +317,8 @@ function updateGridLayout() {
         if (isSecondary) item.classList.add('secondary');
         
         if (item.classList.contains('hidden')) {
-            console.log('Video item is hidden:', item);
             item.style.display = 'none';
         } else {
-            console.log('Video item is visible:', item);
             item.style.display = 'block';
         }
     });
@@ -327,11 +328,9 @@ function updateGridLayout() {
     } else {
         gridContainer.classList.remove('has-primary');
     }
-    console.log('Grid layout updated');
 }
 
 function setStandardLayout() {
-    console.log('Setting standard layout');
     const gridContainer = document.querySelector('.grid-container');
     const videoItems = Array.from(gridContainer.querySelectorAll('.video-item'));
     
@@ -353,7 +352,6 @@ function setStandardLayout() {
     });
 
     gridContainer.classList.add('has-primary');
-    console.log('Standard layout set');
     updateGridLayout();
 }
 
@@ -377,25 +375,18 @@ function exportClips() {
 
 // Add this function to check if the toggle buttons are working
 function checkToggleButtons() {
-    console.log('Checking toggle buttons');
     const videoItems = document.querySelectorAll('.video-item');
     videoItems.forEach((item, index) => {
         const visibilityToggle = item.querySelector('.video-controls button:first-child');
         const primaryToggle = item.querySelector('.video-controls button:last-child');
         
-        console.log(`Video item ${index}:`);
-        console.log('- Visibility toggle:', visibilityToggle);
-        console.log('- Primary toggle:', primaryToggle);
-        
         if (visibilityToggle) {
             visibilityToggle.addEventListener('click', () => {
-                console.log(`Visibility toggle clicked for video item ${index}`);
             });
         }
         
         if (primaryToggle) {
             primaryToggle.addEventListener('click', () => {
-                console.log(`Primary toggle clicked for video item ${index}`);
             });
         }
     });
