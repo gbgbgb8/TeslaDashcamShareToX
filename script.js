@@ -3,7 +3,6 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('dateTimeSelect').addEventListener('change', handleDateTimeChange);
     document.getElementById('standardLayoutButton').addEventListener('click', setStandardLayout);
     document.getElementById('exportButton').addEventListener('click', exportClips);
-    document.getElementById('toggleUIButton').addEventListener('click', toggleUI);
 
     // Initialize any other event listeners or setup code here
 });
@@ -127,12 +126,11 @@ function createVideoItem(videoData, index) {
     videoItem.appendChild(video);
 
     const label = document.createElement('div');
-    label.className = 'video-label ui-element';
+    label.className = 'video-label';
     label.textContent = extractCameraType(videoData.file.name);
     videoItem.appendChild(label);
 
     const controls = createVideoControls(videoItem);
-    controls.classList.add('ui-element');
     videoItem.appendChild(controls);
 
     videoItem.addEventListener('click', (e) => {
@@ -348,15 +346,6 @@ function checkToggleButtons() {
             });
         }
     });
-}
-
-// Add this new function to toggle UI elements
-function toggleUI() {
-    const gridContainer = document.querySelector('.grid-container');
-    gridContainer.classList.toggle('hide-ui');
-    
-    const buttonText = gridContainer.classList.contains('hide-ui') ? 'Show UI' : 'Hide UI';
-    document.getElementById('toggleUIButton').textContent = buttonText;
 }
 
 // Add these event listeners at the end of the file

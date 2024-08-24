@@ -150,7 +150,3 @@ body {
 .clip-item.tapped {
     animation: tapAnimation 0.3s ease;
 }
-
-.hide-ui .ui-element {
-    display: none !important;
-}
