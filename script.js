@@ -51,6 +51,7 @@ function handleFileSelect(event) {
         if (dateTimeSelect.options.length > 0) {
             dateTimeSelect.selectedIndex = 0;
             handleDateTimeChange();
+            setStandardLayout(); // Apply Standard Layout immediately after loading
         }
 
         loadingOverlay.classList.add('d-none');
@@ -185,14 +186,11 @@ function togglePrimaryVideo(event) {
 
     if (currentPrimary === clickedItem) {
         clickedItem.classList.remove('primary');
-        clickedItem.classList.add('secondary');
         gridContainer.classList.remove('has-primary');
     } else {
         if (currentPrimary) {
             currentPrimary.classList.remove('primary');
-            currentPrimary.classList.add('secondary');
         }
-        clickedItem.classList.remove('secondary');
         clickedItem.classList.add('primary');
         gridContainer.classList.add('has-primary');
     }
@@ -207,15 +205,6 @@ function clearPrimarySelection() {
         primaryVideo.classList.remove('primary');
     }
     gridContainer.classList.remove('has-primary');
-    updateGridLayout();
-}
-
-function resetLayout() {
-    const gridContainer = document.querySelector('.grid-container');
-    gridContainer.classList.remove('has-primary');
-    Array.from(gridContainer.children).forEach(item => {
-        item.classList.remove('primary', 'hidden');
-    });
     updateGridLayout();
 }
 
@@ -272,8 +261,6 @@ function exportClips() {
 // Add these event listeners at the end of the file
 document.getElementById('exportButton').addEventListener('click', exportClips);
 document.getElementById('clearPrimaryButton').addEventListener('click', clearPrimarySelection);
-document.getElementById('resetLayoutButton').addEventListener('click', resetLayout);
-document.getElementById('standardLayoutButton').addEventListener('click', setStandardLayout);
 
 // Update the updateGridLayout function
 function updateGridLayout() {
@@ -285,16 +272,21 @@ function updateGridLayout() {
         const cameraType = item.querySelector('.video-label').textContent.toLowerCase();
         item.className = `video-item ${cameraType}`;
         
-        if (primaryVideo) {
-            if (item === primaryVideo) {
-                item.classList.add('primary');
-            } else {
-                item.classList.add('secondary');
+        if (item.classList.contains('hidden')) {
+            item.style.display = 'none';
+        } else {
+            item.style.display = 'block';
+            if (primaryVideo) {
+                if (item === primaryVideo) {
+                    item.classList.add('primary');
+                } else {
+                    item.classList.add('secondary');
+                }
             }
         }
     });
 
-    if (primaryVideo) {
+    if (primaryVideo && !primaryVideo.classList.contains('hidden')) {
         gridContainer.classList.add('has-primary');
     } else {
         gridContainer.classList.remove('has-primary');
