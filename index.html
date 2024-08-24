@@ -12,10 +12,6 @@
     <div class="container-fluid">
         <div class="row">
             <div class="col-md-3 mb-3">
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h1 class="text-light">Tesla Dashcam Viewer</h1>
-                    <button class="btn btn-outline-light" id="closeButton"><i class="fas fa-times"></i></button>
-                </div>
                 <div class="input-group mb-3">
                     <label class="input-group-text" for="fileInput">
                         <i class="fas fa-folder-open"></i>
@@ -23,9 +19,8 @@
                     <input type="file" class="form-control" id="fileInput" webkitdirectory multiple accept=".mp4,.json,.png">
                 </div>
                 <select id="dateTimeSelect" class="form-select mb-3"></select>
-                <button id="standardLayoutButton" class="btn btn-info">Standard Layout</button>
-                <button id="exportButton" class="btn btn-primary w-100 mb-2" disabled>Export Selected Clips</button>
-                <button id="clearPrimaryButton" class="btn btn-outline-secondary w-100 mb-2" disabled>Clear Primary</button>
+                <button id="standardLayoutButton" class="btn btn-info mb-3">Standard Layout</button>
+                <button id="exportButton" class="btn btn-primary w-100 mb-3" disabled>Export Selected Clips</button>
                 <div id="clipList" class="list-group"></div>
             </div>
             <div class="col-md-9">

@@ -56,7 +56,6 @@ function handleFileSelect(event) {
 
         loadingOverlay.classList.add('d-none');
         document.getElementById('exportButton').disabled = false;
-        document.getElementById('clearPrimaryButton').disabled = false;
     });
 }
 
@@ -139,18 +138,17 @@ function createVideoItem(videoData, index) {
 }
 
 function createClipItem(videoData, index) {
-    const clipItem = document.createElement('a');
-    clipItem.href = '#';
-    clipItem.className = 'list-group-item list-group-item-action';
-    clipItem.textContent = `${videoData.file.name} (${Math.round(videoData.duration)}s)`;
+    const clipItem = document.createElement('button');
+    clipItem.className = 'list-group-item list-group-item-action clip-item';
+    clipItem.textContent = videoData.file.name;
     clipItem.dataset.index = index;
-    clipItem.addEventListener('click', (event) => {
-        event.preventDefault();
+    
+    clipItem.addEventListener('click', () => {
         const videoItem = document.querySelector(`.video-item[data-index="${index}"]`);
-        if (videoItem) {
-            videoItem.scrollIntoView({ behavior: 'smooth' });
-        }
+        toggleVideoVisibility(videoItem);
+        clipItem.classList.toggle('dimmed');
     });
+    
     return clipItem;
 }
 
@@ -191,6 +189,12 @@ function toggleVideoVisibility(videoItem) {
         videoItem.style.display = 'none';
     } else {
         videoItem.style.display = 'block';
+    }
+    
+    // Update the corresponding clip item in the list
+    const clipItem = document.querySelector(`.clip-item[data-index="${videoItem.dataset.index}"]`);
+    if (clipItem) {
+        clipItem.classList.toggle('dimmed', videoItem.classList.contains('hidden'));
     }
     
     updateGridLayout();
@@ -356,7 +360,7 @@ function updateGridLayout() {
 
 // Add these event listeners at the end of the file
 document.getElementById('exportButton').addEventListener('click', exportClips);
-document.getElementById('clearPrimaryButton').addEventListener('click', clearPrimarySelection);
+document.getElementById('standardLayoutButton').addEventListener('click', setStandardLayout);
 
 // Add this at the end of your script.js file
 document.addEventListener('DOMContentLoaded', () => {

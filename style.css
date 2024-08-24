@@ -133,3 +133,11 @@ body {
         padding-top: calc(100% + 100px); /* Add some extra space for controls on mobile */
     }
 }
+
+.clip-item {
+    cursor: pointer;
+}
+
+.clip-item.dimmed {
+    opacity: 0.5;
+}
