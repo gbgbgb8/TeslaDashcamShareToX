@@ -104,6 +104,7 @@ function handleDateTimeChange() {
         });
 
         updateGridLayout();
+        checkToggleButtons(); // Add this line
     }
 }
 
@@ -161,6 +162,7 @@ function createVideoControls(videoItem) {
     visibilityToggle.innerHTML = '<i class="fas fa-eye"></i>';
     visibilityToggle.title = 'Toggle Visibility';
     visibilityToggle.addEventListener('click', (e) => {
+        console.log('Visibility toggle clicked');
         e.stopPropagation();
         toggleVideoVisibility(videoItem);
     });
@@ -170,6 +172,7 @@ function createVideoControls(videoItem) {
     primaryToggle.innerHTML = '<i class="fas fa-expand"></i>';
     primaryToggle.title = 'Set as Primary';
     primaryToggle.addEventListener('click', (e) => {
+        console.log('Primary toggle clicked');
         e.stopPropagation();
         togglePrimaryVideo(e);
     });
@@ -179,7 +182,9 @@ function createVideoControls(videoItem) {
 }
 
 function toggleVideoVisibility(videoItem) {
+    console.log('toggleVideoVisibility called for', videoItem);
     videoItem.classList.toggle('hidden');
+    console.log('Hidden class toggled. Is hidden:', videoItem.classList.contains('hidden'));
     updateGridLayout();
 }
 
@@ -265,12 +270,35 @@ function exportClips() {
     // Implement actual export logic here (e.g., creating a zip file)
 }
 
-// Add these event listeners at the end of the file
-document.getElementById('exportButton').addEventListener('click', exportClips);
-document.getElementById('clearPrimaryButton').addEventListener('click', clearPrimarySelection);
+// Add this function to check if the toggle buttons are working
+function checkToggleButtons() {
+    console.log('Checking toggle buttons');
+    const videoItems = document.querySelectorAll('.video-item');
+    videoItems.forEach((item, index) => {
+        const visibilityToggle = item.querySelector('.video-controls button:first-child');
+        const primaryToggle = item.querySelector('.video-controls button:last-child');
+        
+        console.log(`Video item ${index}:`);
+        console.log('- Visibility toggle:', visibilityToggle);
+        console.log('- Primary toggle:', primaryToggle);
+        
+        if (visibilityToggle) {
+            visibilityToggle.addEventListener('click', () => {
+                console.log(`Visibility toggle clicked for video item ${index}`);
+            });
+        }
+        
+        if (primaryToggle) {
+            primaryToggle.addEventListener('click', () => {
+                console.log(`Primary toggle clicked for video item ${index}`);
+            });
+        }
+    });
+}
 
 // Update the updateGridLayout function
 function updateGridLayout() {
+    console.log('updateGridLayout called');
     const gridContainer = document.querySelector('.grid-container');
     const videoItems = Array.from(gridContainer.querySelectorAll('.video-item'));
     const primaryVideo = gridContainer.querySelector('.video-item.primary');
@@ -280,8 +308,10 @@ function updateGridLayout() {
         item.className = `video-item ${cameraType}`;
         
         if (item.classList.contains('hidden')) {
+            console.log('Video item is hidden:', item);
             item.style.display = 'none';
         } else {
+            console.log('Video item is visible:', item);
             item.style.display = 'block';
             if (primaryVideo) {
                 if (item === primaryVideo) {
@@ -298,4 +328,9 @@ function updateGridLayout() {
     } else {
         gridContainer.classList.remove('has-primary');
     }
+    console.log('Grid layout updated');
 }
+
+// Add these event listeners at the end of the file
+document.getElementById('exportButton').addEventListener('click', exportClips);
+document.getElementById('clearPrimaryButton').addEventListener('click', clearPrimarySelection);
