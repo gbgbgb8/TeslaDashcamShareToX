@@ -158,15 +158,12 @@ function togglePrimaryVideo(videoItem) {
 
     if (currentPrimary === videoItem) {
         videoItem.classList.remove('primary');
-        videoItem.classList.add('secondary');
         gridContainer.classList.remove('has-primary');
     } else {
         if (currentPrimary) {
             currentPrimary.classList.remove('primary');
-            currentPrimary.classList.add('secondary');
         }
         videoItem.classList.add('primary');
-        videoItem.classList.remove('secondary');
         gridContainer.classList.add('has-primary');
     }
 
@@ -177,35 +174,11 @@ function initializeGridLayout() {
     const gridContainer = document.querySelector('.grid-container');
     new Sortable(gridContainer, {
         animation: 150,
+        ghostClass: 'sortable-ghost',
         onEnd: updateGridLayout
     });
 
-    // Make video items draggable
-    const videoItems = document.querySelectorAll('.video-item');
-    videoItems.forEach(item => {
-        item.draggable = true;
-        item.addEventListener('dragstart', handleDragStart);
-        item.addEventListener('dragend', handleDragEnd);
-    });
-
     updateGridLayout();
-}
-
-function handleDragStart(event) {
-    event.dataTransfer.setData('text/plain', event.target.id);
-    setTimeout(() => {
-        event.target.classList.add('dragging');
-    }, 0);
-}
-
-function handleDragEnd(event) {
-    event.target.classList.remove('dragging');
-    const gridContainer = document.querySelector('.grid-container');
-    const rect = gridContainer.getBoundingClientRect();
-    const x = event.clientX - rect.left;
-    const y = event.clientY - rect.top;
-    event.target.style.left = `${x}px`;
-    event.target.style.top = `${y}px`;
 }
 
 function updateGridLayout() {
@@ -221,22 +194,16 @@ function updateGridLayout() {
         const primaryVideo = videoItems.find(item => item.classList.contains('primary'));
         const secondaryVideos = videoItems.filter(item => !item.classList.contains('primary'));
 
-        primaryVideo.style.width = '100%';
-        primaryVideo.style.height = '100%';
+        primaryVideo.style.gridColumn = 'span 2';
+        primaryVideo.style.gridRow = 'span 2';
         secondaryVideos.forEach((item, index) => {
-            item.style.width = '20%';
-            item.style.height = '20%';
-            item.style.top = `${index * 25}%`;
-            item.style.left = `${index * 25}%`;
+            item.style.gridColumn = '';
+            item.style.gridRow = '';
         });
     } else {
         videoItems.forEach((item, index) => {
-            item.style.width = '50%';
-            item.style.height = '50%';
-            const row = Math.floor(index / 2);
-            const col = index % 2;
-            item.style.top = `${row * 50}%`;
-            item.style.left = `${col * 50}%`;
+            item.style.gridColumn = '';
+            item.style.gridRow = '';
         });
     }
 }
