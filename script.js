@@ -158,12 +158,15 @@ function togglePrimaryVideo(videoItem) {
 
     if (currentPrimary === videoItem) {
         videoItem.classList.remove('primary');
+        videoItem.classList.add('secondary');
         gridContainer.classList.remove('has-primary');
     } else {
         if (currentPrimary) {
             currentPrimary.classList.remove('primary');
+            currentPrimary.classList.add('secondary');
         }
         videoItem.classList.add('primary');
+        videoItem.classList.remove('secondary');
         gridContainer.classList.add('has-primary');
     }
 
@@ -192,16 +195,22 @@ function updateGridLayout() {
         const primaryVideo = videoItems.find(item => item.classList.contains('primary'));
         const secondaryVideos = videoItems.filter(item => !item.classList.contains('primary'));
 
-        primaryVideo.style.gridArea = '1 / 1 / 3 / 3';
+        primaryVideo.style.width = '100%';
+        primaryVideo.style.height = '100%';
         secondaryVideos.forEach((item, index) => {
-            const areas = ['1 / 3 / 2 / 4', '2 / 3 / 3 / 4', '3 / 1 / 4 / 2'];
-            item.style.gridArea = areas[index];
+            item.style.width = '20%';
+            item.style.height = '20%';
+            item.style.top = `${index * 25}%`;
+            item.style.left = `${index * 25}%`;
         });
     } else {
         videoItems.forEach((item, index) => {
-            const row = Math.floor(index / 2) + 1;
-            const col = (index % 2) + 1;
-            item.style.gridArea = `${row} / ${col} / ${row + 1} / ${col + 1}`;
+            item.style.width = '50%';
+            item.style.height = '50%';
+            const row = Math.floor(index / 2);
+            const col = index % 2;
+            item.style.top = `${row * 50}%`;
+            item.style.left = `${col * 50}%`;
         });
     }
 }
