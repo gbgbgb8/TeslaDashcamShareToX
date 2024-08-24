@@ -16,25 +16,31 @@ let gridLayout = [];
 let isPlaying = false;
 
 function togglePlayPause() {
+    isPlaying = !isPlaying;
+    updatePlayPauseButton();
+    if (isPlaying) {
+        playAllVideos();
+    } else {
+        pauseAllVideos();
+    }
+}
+
+function updatePlayPauseButton() {
     const playPauseButton = document.getElementById('playPauseButton');
     const icon = playPauseButton.querySelector('i');
-    
-    isPlaying = !isPlaying;
     
     if (isPlaying) {
         icon.classList.remove('fa-play');
         icon.classList.add('fa-pause');
-        playAllVideos();
     } else {
         icon.classList.remove('fa-pause');
         icon.classList.add('fa-play');
-        pauseAllVideos();
     }
 }
 
 function playAllVideos() {
     videos.forEach(video => {
-        video.play();
+        video.play().catch(e => console.error("Error playing video:", e));
     });
 }
 
@@ -52,34 +58,19 @@ function handlePlay(event) {
     videos.forEach(video => {
         if (video !== event.target) {
             video.currentTime = event.target.currentTime;
-            video.play();
+            video.play().catch(e => console.error("Error playing video:", e));
         }
     });
 }
 
 function handlePause(event) {
-    if (isPlaying) {
-        isPlaying = false;
-        updatePlayPauseButton();
-    }
+    isPlaying = false;
+    updatePlayPauseButton();
     videos.forEach(video => {
         if (video !== event.target) {
             video.pause();
         }
     });
-}
-
-function updatePlayPauseButton() {
-    const playPauseButton = document.getElementById('playPauseButton');
-    const icon = playPauseButton.querySelector('i');
-    
-    if (isPlaying) {
-        icon.classList.remove('fa-play');
-        icon.classList.add('fa-pause');
-    } else {
-        icon.classList.remove('fa-pause');
-        icon.classList.add('fa-play');
-    }
 }
 
 function handleFileSelect(event) {
@@ -131,6 +122,8 @@ function handleFileSelect(event) {
 
         loadingOverlay.classList.add('d-none');
         document.getElementById('exportButton').disabled = false;
+        document.getElementById('playPauseButton').disabled = false;
+        updatePlayPauseButton(); // Initialize button state
     });
 }
 
@@ -240,7 +233,6 @@ function createVideoControls(videoItem) {
     visibilityToggle.innerHTML = '<i class="fas fa-eye"></i>';
     visibilityToggle.title = 'Toggle Visibility';
     visibilityToggle.addEventListener('click', (e) => {
-        console.log('Visibility toggle clicked');
         e.stopPropagation();
         toggleVideoVisibility(videoItem);
     });
@@ -250,7 +242,6 @@ function createVideoControls(videoItem) {
     primaryToggle.innerHTML = '<i class="fas fa-expand"></i>';
     primaryToggle.title = 'Set as Primary';
     primaryToggle.addEventListener('click', (e) => {
-        console.log('Primary toggle clicked');
         e.stopPropagation();
         togglePrimaryVideo(e);
     });
@@ -267,6 +258,12 @@ function toggleVideoVisibility(videoItem) {
     
     // Force update of the video item's style
     videoItem.style.display = isHidden ? 'none' : 'block';
+    
+    // Update the corresponding clip item in the list
+    const clipItem = document.querySelector(`.clip-item[data-index="${videoItem.dataset.index}"]`);
+    if (clipItem) {
+        clipItem.classList.toggle('dimmed', isHidden);
+    }
     
     updateGridLayout();
 }
@@ -291,6 +288,9 @@ function togglePrimaryVideo(event) {
     }
 
     updateGridLayout();
+    pauseAllVideos();
+    isPlaying = false;
+    updatePlayPauseButton();
 }
 
 function updateGridLayout() {
@@ -357,14 +357,6 @@ function setStandardLayout() {
     updateGridLayout();
 }
 
-function handlePause(event) {
-    videos.forEach(video => {
-        if (video !== event.target) {
-            video.pause();
-        }
-    });
-}
-
 function handleTimeUpdate(event) {
     videos.forEach(video => {
         if (video !== event.target && Math.abs(video.currentTime - event.target.currentTime) > 0.1) {
@@ -408,7 +400,3 @@ function checkToggleButtons() {
         }
     });
 }
-
-// Add these event listeners at the end of the file
-document.getElementById('exportButton').addEventListener('click', exportClips);
-document.getElementById('standardLayoutButton').addEventListener('click', setStandardLayout);
