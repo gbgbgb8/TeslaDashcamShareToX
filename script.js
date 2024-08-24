@@ -133,14 +133,14 @@ function createVideoControls(videoItem) {
     controls.className = 'video-controls';
 
     const visibilityToggle = document.createElement('button');
-    visibilityToggle.className = 'btn btn-sm btn-outline-light';
-    visibilityToggle.innerHTML = '<i class="fas fa-eye"></i>';
+    visibilityToggle.className = 'btn btn-sm btn-outline-light me-2';
+    visibilityToggle.innerHTML = '<i class="fas fa-eye"></i> Toggle';
     visibilityToggle.addEventListener('click', () => toggleVideoVisibility(videoItem));
     controls.appendChild(visibilityToggle);
 
     const primaryToggle = document.createElement('button');
     primaryToggle.className = 'btn btn-sm btn-outline-primary';
-    primaryToggle.innerHTML = '<i class="fas fa-expand"></i>';
+    primaryToggle.innerHTML = '<i class="fas fa-expand"></i> Primary';
     primaryToggle.addEventListener('click', () => togglePrimaryVideo(videoItem));
     controls.appendChild(primaryToggle);
 

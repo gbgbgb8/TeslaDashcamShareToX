@@ -43,8 +43,8 @@ body {
 }
 
 .video-item video {
-    flex-grow: 1;
     width: 100%;
+    height: calc(100% - 40px); /* Adjust this value based on the height of your controls */
     object-fit: cover;
 }
 
@@ -70,14 +70,19 @@ body {
 
 .video-controls {
     display: flex;
-    justify-content: space-between;
+    justify-content: center;
     padding: 5px;
     background-color: rgba(0, 0, 0, 0.7);
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
 }
 
 .video-controls button {
     padding: 2px 5px;
     font-size: 0.8em;
+    margin: 0 2px;
 }
 
 .loading-overlay {
