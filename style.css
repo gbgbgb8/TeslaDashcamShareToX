@@ -150,3 +150,16 @@ body {
 .clip-item.tapped {
     animation: tapAnimation 0.3s ease;
 }
+
+#playPauseButton {
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+#playPauseButton i {
+    font-size: 1.2em;
+}

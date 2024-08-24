@@ -3,6 +3,7 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('dateTimeSelect').addEventListener('change', handleDateTimeChange);
     document.getElementById('standardLayoutButton').addEventListener('click', setStandardLayout);
     document.getElementById('exportButton').addEventListener('click', exportClips);
+    document.getElementById('playPauseButton').addEventListener('click', togglePlayPause);
 
     // Initialize any other event listeners or setup code here
 });
@@ -11,6 +12,75 @@ let videoGroups = {};
 let videos = [];
 let videoIdCounter = 0;
 let gridLayout = [];
+
+let isPlaying = false;
+
+function togglePlayPause() {
+    const playPauseButton = document.getElementById('playPauseButton');
+    const icon = playPauseButton.querySelector('i');
+    
+    isPlaying = !isPlaying;
+    
+    if (isPlaying) {
+        icon.classList.remove('fa-play');
+        icon.classList.add('fa-pause');
+        playAllVideos();
+    } else {
+        icon.classList.remove('fa-pause');
+        icon.classList.add('fa-play');
+        pauseAllVideos();
+    }
+}
+
+function playAllVideos() {
+    videos.forEach(video => {
+        video.play();
+    });
+}
+
+function pauseAllVideos() {
+    videos.forEach(video => {
+        video.pause();
+    });
+}
+
+function handlePlay(event) {
+    if (!isPlaying) {
+        isPlaying = true;
+        updatePlayPauseButton();
+    }
+    videos.forEach(video => {
+        if (video !== event.target) {
+            video.currentTime = event.target.currentTime;
+            video.play();
+        }
+    });
+}
+
+function handlePause(event) {
+    if (isPlaying) {
+        isPlaying = false;
+        updatePlayPauseButton();
+    }
+    videos.forEach(video => {
+        if (video !== event.target) {
+            video.pause();
+        }
+    });
+}
+
+function updatePlayPauseButton() {
+    const playPauseButton = document.getElementById('playPauseButton');
+    const icon = playPauseButton.querySelector('i');
+    
+    if (isPlaying) {
+        icon.classList.remove('fa-play');
+        icon.classList.add('fa-pause');
+    } else {
+        icon.classList.remove('fa-pause');
+        icon.classList.add('fa-play');
+    }
+}
 
 function handleFileSelect(event) {
     const files = event.target.files;
@@ -285,15 +355,6 @@ function setStandardLayout() {
     gridContainer.classList.add('has-primary');
     console.log('Standard layout set');
     updateGridLayout();
-}
-
-function handlePlay(event) {
-    videos.forEach(video => {
-        if (video !== event.target) {
-            video.currentTime = event.target.currentTime;
-            video.play();
-        }
-    });
 }
 
 function handlePause(event) {
