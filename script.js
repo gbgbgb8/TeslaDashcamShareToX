@@ -15,6 +15,27 @@ let gridLayout = [];
 
 let isPlaying = false;
 
+let videoStates = {};
+let interactionTimeline = [];
+
+function initializeVideoStates() {
+    videos.forEach((video, index) => {
+        videoStates[index] = {
+            isActive: false,
+            isHidden: false,
+            lastActiveTime: 0
+        };
+    });
+}
+
+function recordInteraction(type, videoIndex, timestamp) {
+    interactionTimeline.push({
+        type: type,
+        videoIndex: videoIndex,
+        timestamp: timestamp
+    });
+}
+
 function togglePlayPause() {
     isPlaying = !isPlaying;
     updatePlayPauseButton();
@@ -272,6 +293,20 @@ function toggleVideoVisibility(videoItem) {
 
 function togglePrimaryVideo(event) {
     const clickedItem = event.currentTarget.closest('.video-item');
+    const index = parseInt(clickedItem.dataset.index);
+    const currentTime = videos[0].currentTime; // Assuming all videos are in sync
+
+    // Record the interaction
+    recordInteraction('switchActive', index, currentTime);
+
+    // Update video states
+    Object.keys(videoStates).forEach(key => {
+        videoStates[key].isActive = (key == index);
+        if (key == index) {
+            videoStates[key].lastActiveTime = currentTime;
+        }
+    });
+
     const gridContainer = clickedItem.closest('.grid-container');
     const currentPrimary = gridContainer.querySelector('.video-item.primary');
 
@@ -382,12 +417,40 @@ function checkToggleButtons() {
         
         if (visibilityToggle) {
             visibilityToggle.addEventListener('click', () => {
+                const currentTime = videos[0].currentTime;
+                recordInteraction('toggleVisibility', index, currentTime);
+                videoStates[index].isHidden = !videoStates[index].isHidden;
+                toggleVideoVisibility(item);
             });
         }
         
         if (primaryToggle) {
             primaryToggle.addEventListener('click', () => {
+                const currentTime = videos[0].currentTime;
+                recordInteraction('switchActive', index, currentTime);
+                togglePrimaryVideo(event);
             });
         }
     });
+}
+
+function handlePlay(event) {
+    const currentTime = event.target.currentTime;
+    recordInteraction('play', null, currentTime);
+    // Existing play logic
+    // ...
+}
+
+function handlePause(event) {
+    const currentTime = event.target.currentTime;
+    recordInteraction('pause', null, currentTime);
+    // Existing pause logic
+    // ...
+}
+
+function exportVideoExperience() {
+    // This function would use the interactionTimeline and videoStates
+    // to create a video that represents the user's viewing experience
+    console.log('Exporting video experience', interactionTimeline, videoStates);
+    // Implementation of video creation would go here
 }
