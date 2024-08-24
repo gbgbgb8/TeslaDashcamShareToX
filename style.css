@@ -136,8 +136,15 @@ body {
 
 .clip-item {
     cursor: pointer;
+    transition: opacity 0.3s ease;
 }
 
-.clip-item.dimmed {
-    opacity: 0.5;
+@keyframes tapAnimation {
+    0% { opacity: 1; }
+    50% { opacity: 0.5; }
+    100% { opacity: 1; }
+}
+
+.clip-item.tapped {
+    animation: tapAnimation 0.3s ease;
 }

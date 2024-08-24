@@ -151,7 +151,12 @@ function createClipItem(videoData, index) {
     clipItem.addEventListener('click', () => {
         const videoItem = document.querySelector(`.video-item[data-index="${index}"]`);
         toggleVideoVisibility(videoItem);
-        clipItem.classList.toggle('dimmed');
+        
+        // Trigger the tap animation
+        clipItem.classList.add('tapped');
+        setTimeout(() => {
+            clipItem.classList.remove('tapped');
+        }, 300); // Match this to the animation duration
     });
     
     return clipItem;
@@ -187,20 +192,11 @@ function createVideoControls(videoItem) {
 function toggleVideoVisibility(videoItem) {
     console.log('toggleVideoVisibility called for', videoItem);
     videoItem.classList.toggle('hidden');
-    console.log('Hidden class toggled. Is hidden:', videoItem.classList.contains('hidden'));
+    const isHidden = videoItem.classList.contains('hidden');
+    console.log('Hidden class toggled. Is hidden:', isHidden);
     
     // Force update of the video item's style
-    if (videoItem.classList.contains('hidden')) {
-        videoItem.style.display = 'none';
-    } else {
-        videoItem.style.display = 'block';
-    }
-    
-    // Update the corresponding clip item in the list
-    const clipItem = document.querySelector(`.clip-item[data-index="${videoItem.dataset.index}"]`);
-    if (clipItem) {
-        clipItem.classList.toggle('dimmed', videoItem.classList.contains('hidden'));
-    }
+    videoItem.style.display = isHidden ? 'none' : 'block';
     
     updateGridLayout();
 }
@@ -227,14 +223,41 @@ function togglePrimaryVideo(event) {
     updateGridLayout();
 }
 
-function clearPrimarySelection() {
+function updateGridLayout() {
+    console.log('updateGridLayout called');
     const gridContainer = document.querySelector('.grid-container');
+    const videoItems = Array.from(gridContainer.querySelectorAll('.video-item'));
     const primaryVideo = gridContainer.querySelector('.video-item.primary');
-    if (primaryVideo) {
-        primaryVideo.classList.remove('primary');
+
+    videoItems.forEach(item => {
+        const cameraType = item.querySelector('.video-label').textContent.toLowerCase();
+        
+        // Preserve existing classes
+        const isHidden = item.classList.contains('hidden');
+        const isPrimary = item.classList.contains('primary');
+        const isSecondary = item.classList.contains('secondary');
+        
+        item.className = `video-item ${cameraType}`;
+        
+        if (isHidden) item.classList.add('hidden');
+        if (isPrimary) item.classList.add('primary');
+        if (isSecondary) item.classList.add('secondary');
+        
+        if (item.classList.contains('hidden')) {
+            console.log('Video item is hidden:', item);
+            item.style.display = 'none';
+        } else {
+            console.log('Video item is visible:', item);
+            item.style.display = 'block';
+        }
+    });
+
+    if (primaryVideo && !primaryVideo.classList.contains('hidden')) {
+        gridContainer.classList.add('has-primary');
+    } else {
+        gridContainer.classList.remove('has-primary');
     }
-    gridContainer.classList.remove('has-primary');
-    updateGridLayout();
+    console.log('Grid layout updated');
 }
 
 function setStandardLayout() {
@@ -325,49 +348,6 @@ function checkToggleButtons() {
     });
 }
 
-// Update the updateGridLayout function
-function updateGridLayout() {
-    console.log('updateGridLayout called');
-    const gridContainer = document.querySelector('.grid-container');
-    const videoItems = Array.from(gridContainer.querySelectorAll('.video-item'));
-    const primaryVideo = gridContainer.querySelector('.video-item.primary');
-
-    videoItems.forEach(item => {
-        const cameraType = item.querySelector('.video-label').textContent.toLowerCase();
-        
-        // Preserve existing classes
-        const isHidden = item.classList.contains('hidden');
-        const isPrimary = item.classList.contains('primary');
-        const isSecondary = item.classList.contains('secondary');
-        
-        item.className = `video-item ${cameraType}`;
-        
-        if (isHidden) item.classList.add('hidden');
-        if (isPrimary) item.classList.add('primary');
-        if (isSecondary) item.classList.add('secondary');
-        
-        if (item.classList.contains('hidden')) {
-            console.log('Video item is hidden:', item);
-            item.style.display = 'none';
-        } else {
-            console.log('Video item is visible:', item);
-            item.style.display = 'block';
-        }
-    });
-
-    if (primaryVideo && !primaryVideo.classList.contains('hidden')) {
-        gridContainer.classList.add('has-primary');
-    } else {
-        gridContainer.classList.remove('has-primary');
-    }
-    console.log('Grid layout updated');
-}
-
 // Add these event listeners at the end of the file
 document.getElementById('exportButton').addEventListener('click', exportClips);
 document.getElementById('standardLayoutButton').addEventListener('click', setStandardLayout);
-
-// Add this at the end of your script.js file
-document.addEventListener('DOMContentLoaded', () => {
-    document.getElementById('standardLayoutButton').addEventListener('click', setStandardLayout);
-});
