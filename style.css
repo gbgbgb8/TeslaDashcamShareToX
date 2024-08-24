@@ -65,6 +65,7 @@ body {
     width: 20%;
     height: 20%;
     z-index: 2;
+    position: absolute;
 }
 
 .video-item.hidden {
