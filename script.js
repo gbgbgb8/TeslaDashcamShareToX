@@ -1,5 +1,6 @@
 document.getElementById('fileInput').addEventListener('change', handleFileSelect);
 document.getElementById('dateTimeSelect').addEventListener('change', handleDateTimeChange);
+document.getElementById('closeButton').addEventListener('click', () => window.close());
 
 let videoGroups = {};
 let videos = [];
@@ -70,7 +71,7 @@ function extractCameraType(fileName) {
             case 'front':
                 return 'Front';
             case 'back':
-                return 'Back';
+                return 'Rear';
             case 'left_repeater':
                 return 'Left';
             case 'right_repeater':
@@ -84,8 +85,10 @@ function handleDateTimeChange() {
     const dateTimeSelect = document.getElementById('dateTimeSelect');
     const selectedDateTime = dateTimeSelect.value;
     const videoContainer = document.getElementById('videoContainer');
+    const clipList = document.getElementById('clipList');
     
     videoContainer.innerHTML = '';
+    clipList.innerHTML = '';
     videos = [];
 
     if (videoGroups[selectedDateTime]) {
@@ -97,6 +100,9 @@ function handleDateTimeChange() {
             const videoItem = createVideoItem(videoData, index);
             gridContainer.appendChild(videoItem);
             videos.push(videoItem.querySelector('video'));
+
+            const clipItem = createClipItem(videoData, index);
+            clipList.appendChild(clipItem);
         });
 
         addPlaceholders(gridContainer);
@@ -127,6 +133,24 @@ function createVideoItem(videoData, index) {
     videoItem.appendChild(controls);
 
     return videoItem;
+}
+
+function createClipItem(videoData, index) {
+    const clipItem = document.createElement('div');
+    clipItem.className = 'list-group-item list-group-item-action bg-dark text-light';
+    clipItem.dataset.index = index;
+
+    const label = document.createElement('div');
+    label.className = 'clip-label';
+    label.textContent = extractDateTime(videoData.file.name);
+    clipItem.appendChild(label);
+
+    clipItem.addEventListener('click', () => {
+        const videoItem = document.getElementById(`video-item-${index}`);
+        videoItem.scrollIntoView({ behavior: 'smooth' });
+    });
+
+    return clipItem;
 }
 
 function createVideoControls(videoItem) {
@@ -250,7 +274,7 @@ function setStandardLayout() {
                 item.classList.add('primary');
                 item.classList.remove('hidden');
                 break;
-            case 'Back':
+            case 'Rear':
                 item.classList.add('hidden');
                 item.classList.remove('primary');
                 break;
