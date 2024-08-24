@@ -104,7 +104,7 @@ function handleDateTimeChange() {
         });
 
         updateGridLayout();
-        checkToggleButtons(); // Add this line
+        checkToggleButtons();
     }
 }
 
@@ -243,9 +243,6 @@ function setStandardLayout() {
                 item.classList.add('primary');
                 break;
             case 'Rear':
-                item.classList.add('hidden');
-                item.style.display = 'none';
-                break;
             case 'Left':
             case 'Right':
                 item.classList.add('secondary');
