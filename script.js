@@ -87,15 +87,12 @@ function handleDateTimeChange() {
     const videoContainer = document.getElementById('videoContainer');
     const clipList = document.getElementById('clipList');
     
-    videoContainer.innerHTML = '';
+    videoContainer.innerHTML = '<div class="grid-container"></div><div class="active-view">Active View</div>';
+    const gridContainer = videoContainer.querySelector('.grid-container');
     clipList.innerHTML = '';
     videos = [];
 
     if (videoGroups[selectedDateTime]) {
-        const gridContainer = document.createElement('div');
-        gridContainer.className = 'grid-container';
-        videoContainer.appendChild(gridContainer);
-
         videoGroups[selectedDateTime].forEach((videoData, index) => {
             const videoItem = createVideoItem(videoData, index);
             gridContainer.appendChild(videoItem);
@@ -105,8 +102,7 @@ function handleDateTimeChange() {
             clipList.appendChild(clipItem);
         });
 
-        addPlaceholders(gridContainer);
-        initializeGridLayout();
+        updateGridLayout();
     }
 }
 
@@ -130,6 +126,8 @@ function createVideoItem(videoData, index) {
 
     const controls = createVideoControls(videoItem);
     videoItem.appendChild(controls);
+
+    videoItem.addEventListener('click', togglePrimaryVideo);
 
     return videoItem;
 }
@@ -174,21 +172,19 @@ function toggleVideoVisibility(videoItem) {
     updateGridLayout();
 }
 
-function togglePrimaryVideo(videoItem) {
-    const gridContainer = videoItem.closest('.grid-container');
+function togglePrimaryVideo(event) {
+    const clickedItem = event.currentTarget;
+    const gridContainer = clickedItem.closest('.grid-container');
     const currentPrimary = gridContainer.querySelector('.video-item.primary');
 
-    if (currentPrimary === videoItem) {
-        videoItem.classList.remove('primary');
-        videoItem.classList.add('secondary');
+    if (currentPrimary === clickedItem) {
+        clickedItem.classList.remove('primary');
         gridContainer.classList.remove('has-primary');
     } else {
         if (currentPrimary) {
             currentPrimary.classList.remove('primary');
-            currentPrimary.classList.add('secondary');
         }
-        videoItem.classList.add('primary');
-        videoItem.classList.remove('secondary');
+        clickedItem.classList.add('primary');
         gridContainer.classList.add('has-primary');
     }
 
@@ -216,27 +212,16 @@ function resetLayout() {
 
 function setStandardLayout() {
     const gridContainer = document.querySelector('.grid-container');
-    const videoItems = Array.from(gridContainer.children);
+    const videoItems = Array.from(gridContainer.querySelectorAll('.video-item'));
     
     videoItems.forEach(item => {
         const cameraType = item.querySelector('.video-label').textContent;
-        switch (cameraType) {
-            case 'Front':
-                item.classList.add('primary');
-                item.classList.remove('hidden');
-                break;
-            case 'Rear':
-                item.classList.add('hidden');
-                item.classList.remove('primary');
-                break;
-            case 'Left':
-            case 'Right':
-                item.classList.remove('hidden', 'primary');
-                break;
+        item.classList.remove('primary', 'hidden');
+        if (cameraType === 'Front') {
+            item.classList.add('primary');
         }
     });
 
-    gridContainer.classList.add('has-primary');
     updateGridLayout();
 }
 
@@ -280,3 +265,29 @@ document.getElementById('exportButton').addEventListener('click', exportClips);
 document.getElementById('clearPrimaryButton').addEventListener('click', clearPrimarySelection);
 document.getElementById('resetLayoutButton').addEventListener('click', resetLayout);
 document.getElementById('standardLayoutButton').addEventListener('click', setStandardLayout);
+
+// Update the updateGridLayout function
+function updateGridLayout() {
+    const gridContainer = document.querySelector('.grid-container');
+    const videoItems = Array.from(gridContainer.querySelectorAll('.video-item'));
+    const primaryVideo = gridContainer.querySelector('.video-item.primary');
+
+    videoItems.forEach(item => {
+        const cameraType = item.querySelector('.video-label').textContent.toLowerCase();
+        item.className = `video-item ${cameraType}`;
+        
+        if (primaryVideo) {
+            if (item === primaryVideo) {
+                item.classList.add('primary');
+            } else {
+                item.classList.add('secondary');
+            }
+        }
+    });
+
+    if (primaryVideo) {
+        gridContainer.classList.add('has-primary');
+    } else {
+        gridContainer.classList.remove('has-primary');
+    }
+}
