@@ -112,22 +112,21 @@ function handleDateTimeChange() {
 
 function createVideoItem(videoData, index) {
     const videoItem = document.createElement('div');
-    videoItem.className = 'video-item';
-    videoItem.id = `video-item-${videoIdCounter++}`;
+    videoItem.className = 'video-item secondary';
     videoItem.dataset.index = index;
+
+    const video = document.createElement('video');
+    video.src = URL.createObjectURL(videoData.file);
+    video.controls = true;
+    video.addEventListener('play', handlePlay);
+    video.addEventListener('pause', handlePause);
+    video.addEventListener('timeupdate', handleTimeUpdate);
+    videoItem.appendChild(video);
 
     const label = document.createElement('div');
     label.className = 'video-label';
     label.textContent = extractCameraType(videoData.file.name);
     videoItem.appendChild(label);
-
-    const videoElement = document.createElement('video');
-    videoElement.controls = true;
-    videoElement.src = URL.createObjectURL(videoData.file);
-    videoElement.addEventListener('play', handlePlay);
-    videoElement.addEventListener('pause', handlePause);
-    videoElement.addEventListener('timeupdate', handleTimeUpdate);
-    videoItem.appendChild(videoElement);
 
     const controls = createVideoControls(videoItem);
     videoItem.appendChild(controls);
@@ -136,20 +135,18 @@ function createVideoItem(videoData, index) {
 }
 
 function createClipItem(videoData, index) {
-    const clipItem = document.createElement('div');
-    clipItem.className = 'list-group-item list-group-item-action bg-dark text-light';
+    const clipItem = document.createElement('a');
+    clipItem.href = '#';
+    clipItem.className = 'list-group-item list-group-item-action';
+    clipItem.textContent = `${videoData.file.name} (${Math.round(videoData.duration)}s)`;
     clipItem.dataset.index = index;
-
-    const label = document.createElement('div');
-    label.className = 'clip-label';
-    label.textContent = extractDateTime(videoData.file.name);
-    clipItem.appendChild(label);
-
-    clipItem.addEventListener('click', () => {
-        const videoItem = document.getElementById(`video-item-${index}`);
-        videoItem.scrollIntoView({ behavior: 'smooth' });
+    clipItem.addEventListener('click', (event) => {
+        event.preventDefault();
+        const videoItem = document.querySelector(`.video-item[data-index="${index}"]`);
+        if (videoItem) {
+            videoItem.scrollIntoView({ behavior: 'smooth' });
+        }
     });
-
     return clipItem;
 }
 
@@ -196,61 +193,6 @@ function togglePrimaryVideo(videoItem) {
     }
 
     updateGridLayout();
-}
-
-function initializeGridLayout() {
-    const gridContainer = document.querySelector('.grid-container');
-    new Sortable(gridContainer, {
-        animation: 150,
-        ghostClass: 'sortable-ghost',
-        onEnd: updateGridLayout
-    });
-
-    updateGridLayout();
-}
-
-function addPlaceholders(gridContainer) {
-    const videoItems = Array.from(gridContainer.children).filter(item => !item.classList.contains('hidden'));
-    const placeholdersNeeded = 4 - videoItems.length;
-
-    for (let i = 0; i < placeholdersNeeded; i++) {
-        const placeholder = document.createElement('div');
-        placeholder.className = 'grid-placeholder';
-        gridContainer.appendChild(placeholder);
-    }
-}
-
-function updateGridLayout() {
-    const gridContainer = document.querySelector('.grid-container');
-    const videoItems = Array.from(gridContainer.children).filter(item => !item.classList.contains('hidden') && !item.classList.contains('grid-placeholder'));
-    const hasPrimary = videoItems.some(item => item.classList.contains('primary'));
-
-    videoItems.forEach((item, index) => {
-        item.style.gridArea = '';
-    });
-
-    if (hasPrimary) {
-        const primaryVideo = videoItems.find(item => item.classList.contains('primary'));
-        const secondaryVideos = videoItems.filter(item => !item.classList.contains('primary'));
-
-        primaryVideo.style.width = '100%';
-        primaryVideo.style.height = '100%';
-        secondaryVideos.forEach((item, index) => {
-            item.style.width = '20%';
-            item.style.height = '20%';
-            item.style.top = `${index * 25}%`;
-            item.style.left = `${index * 25}%`;
-        });
-    } else {
-        videoItems.forEach((item, index) => {
-            item.style.width = '50%';
-            item.style.height = '50%';
-            const row = Math.floor(index / 2);
-            const col = index % 2;
-            item.style.top = `${row * 50}%`;
-            item.style.left = `${col * 50}%`;
-        });
-    }
 }
 
 function clearPrimarySelection() {
