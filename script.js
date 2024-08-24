@@ -2,7 +2,7 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('fileInput').addEventListener('change', handleFileSelect);
     document.getElementById('dateTimeSelect').addEventListener('change', handleDateTimeChange);
     document.getElementById('standardLayoutButton').addEventListener('click', setStandardLayout);
-    document.getElementById('exportButton').addEventListener('click', exportClips);
+    document.getElementById('exportButton').addEventListener('click', exportVideoExperience);
     document.getElementById('playPauseButton').addEventListener('click', togglePlayPause);
 
     // Initialize any other event listeners or setup code here
@@ -276,18 +276,13 @@ function createVideoControls(videoItem) {
 }
 
 function toggleVideoVisibility(videoItem) {
+    const index = parseInt(videoItem.dataset.index);
+    const currentTime = videos[0].currentTime;
+
+    videoStates[index].isHidden = !videoStates[index].isHidden;
+    recordInteraction('toggleVisibility', index, currentTime);
+
     videoItem.classList.toggle('hidden');
-    const isHidden = videoItem.classList.contains('hidden');
-    
-    // Force update of the video item's style
-    videoItem.style.display = isHidden ? 'none' : 'block';
-    
-    // Update the corresponding clip item in the list
-    const clipItem = document.querySelector(`.clip-item[data-index="${videoItem.dataset.index}"]`);
-    if (clipItem) {
-        clipItem.classList.toggle('dimmed', isHidden);
-    }
-    
     updateGridLayout();
 }
 
@@ -434,23 +429,80 @@ function checkToggleButtons() {
     });
 }
 
-function handlePlay(event) {
-    const currentTime = event.target.currentTime;
-    recordInteraction('play', null, currentTime);
-    // Existing play logic
-    // ...
+let videoContext;
+let videoSources = {};
+
+function initializeVideoContext() {
+    const canvas = document.createElement('canvas');
+    canvas.width = 1280;  // Adjust based on your video resolution
+    canvas.height = 960;
+    videoContext = new VideoContext(canvas);
 }
 
-function handlePause(event) {
-    const currentTime = event.target.currentTime;
-    recordInteraction('pause', null, currentTime);
-    // Existing pause logic
-    // ...
+function prepareVideoSources() {
+    videos.forEach((video, index) => {
+        const source = videoContext.video(video.src);
+        videoSources[index] = source;
+    });
 }
 
 function exportVideoExperience() {
-    // This function would use the interactionTimeline and videoStates
-    // to create a video that represents the user's viewing experience
-    console.log('Exporting video experience', interactionTimeline, videoStates);
-    // Implementation of video creation would go here
+    initializeVideoContext();
+    prepareVideoSources();
+
+    let currentTime = 0;
+    const duration = Math.max(...videos.map(v => v.duration));
+
+    interactionTimeline.forEach((interaction, index) => {
+        const nextInteraction = interactionTimeline[index + 1];
+        const endTime = nextInteraction ? nextInteraction.timestamp : duration;
+
+        switch (interaction.type) {
+            case 'switchActive':
+                applyActiveVideoEffect(interaction.videoIndex, currentTime, endTime);
+                break;
+            case 'toggleVisibility':
+                applyVisibilityEffect(interaction.videoIndex, currentTime, endTime);
+                break;
+            // Handle other interaction types as needed
+        }
+
+        currentTime = interaction.timestamp;
+    });
+
+    // Start the render
+    videoContext.play();
+    videoContext.startRendering();
+
+    // When rendering is finished, save the video
+    videoContext.onComplete = function() {
+        const blob = new Blob([videoContext.canvas.toDataURL('image/webm')], {type: 'video/webm'});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.style.display = 'none';
+        a.href = url;
+        a.download = 'exported_video_experience.webm';
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+    };
+}
+
+function applyActiveVideoEffect(videoIndex, startTime, endTime) {
+    const source = videoSources[videoIndex];
+    const node = source.startAt(startTime);
+    node.connect(videoContext.destination);
+    node.stop(endTime);
+
+    // Apply any effects or transitions here
+}
+
+function applyVisibilityEffect(videoIndex, startTime, endTime) {
+    const source = videoSources[videoIndex];
+    const node = source.startAt(startTime);
+    const effect = videoContext.effect(VideoContext.DEFINITIONS.OPACITY);
+    node.connect(effect);
+    effect.connect(videoContext.destination);
+    effect.opacity = videoStates[videoIndex].isHidden ? 0 : 1;
+    node.stop(endTime);
 }
