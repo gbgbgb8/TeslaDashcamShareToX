@@ -40,6 +40,7 @@ body {
     background-color: rgba(0, 0, 0, 0.5);
     display: flex;
     flex-direction: column;
+    cursor: move; /* Indicate that the item is draggable */
 }
 
 .video-item video {

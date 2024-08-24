@@ -179,7 +179,33 @@ function initializeGridLayout() {
         animation: 150,
         onEnd: updateGridLayout
     });
+
+    // Make video items draggable
+    const videoItems = document.querySelectorAll('.video-item');
+    videoItems.forEach(item => {
+        item.draggable = true;
+        item.addEventListener('dragstart', handleDragStart);
+        item.addEventListener('dragend', handleDragEnd);
+    });
+
     updateGridLayout();
+}
+
+function handleDragStart(event) {
+    event.dataTransfer.setData('text/plain', event.target.id);
+    setTimeout(() => {
+        event.target.classList.add('dragging');
+    }, 0);
+}
+
+function handleDragEnd(event) {
+    event.target.classList.remove('dragging');
+    const gridContainer = document.querySelector('.grid-container');
+    const rect = gridContainer.getBoundingClientRect();
+    const x = event.clientX - rect.left;
+    const y = event.clientY - rect.top;
+    event.target.style.left = `${x}px`;
+    event.target.style.top = `${y}px`;
 }
 
 function updateGridLayout() {
