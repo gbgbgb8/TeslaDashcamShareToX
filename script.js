@@ -153,18 +153,20 @@ function toggleVideoVisibility(videoItem) {
 }
 
 function togglePrimaryVideo(videoItem) {
-    const isPrimary = videoItem.classList.toggle('primary');
-    const gridContainer = document.querySelector('.grid-container');
-    
-    if (isPrimary) {
-        gridContainer.classList.add('has-primary');
-        Array.from(gridContainer.children).forEach(item => {
-            if (item !== videoItem) item.classList.remove('primary');
-        });
-    } else {
+    const gridContainer = videoItem.closest('.grid-container');
+    const currentPrimary = gridContainer.querySelector('.video-item.primary');
+
+    if (currentPrimary === videoItem) {
+        videoItem.classList.remove('primary');
         gridContainer.classList.remove('has-primary');
+    } else {
+        if (currentPrimary) {
+            currentPrimary.classList.remove('primary');
+        }
+        videoItem.classList.add('primary');
+        gridContainer.classList.add('has-primary');
     }
-    
+
     updateGridLayout();
 }
 
@@ -180,7 +182,11 @@ function initializeGridLayout() {
 function updateGridLayout() {
     const gridContainer = document.querySelector('.grid-container');
     const videoItems = Array.from(gridContainer.children).filter(item => !item.classList.contains('hidden'));
-    const hasPrimary = gridContainer.classList.contains('has-primary');
+    const hasPrimary = videoItems.some(item => item.classList.contains('primary'));
+
+    videoItems.forEach((item, index) => {
+        item.style.gridArea = '';
+    });
 
     if (hasPrimary) {
         const primaryVideo = videoItems.find(item => item.classList.contains('primary'));
@@ -188,9 +194,8 @@ function updateGridLayout() {
 
         primaryVideo.style.gridArea = '1 / 1 / 3 / 3';
         secondaryVideos.forEach((item, index) => {
-            const row = Math.floor(index / 2) + 1;
-            const col = (index % 2) + 3;
-            item.style.gridArea = `${row} / ${col} / ${row + 1} / ${col + 1}`;
+            const areas = ['1 / 3 / 2 / 4', '2 / 3 / 3 / 4', '3 / 1 / 4 / 2'];
+            item.style.gridArea = areas[index];
         });
     } else {
         videoItems.forEach((item, index) => {
