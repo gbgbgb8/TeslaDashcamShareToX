@@ -182,7 +182,7 @@ function handleDateTimeChange() {
     const videoContainer = document.getElementById('videoContainer');
     const clipList = document.getElementById('clipList');
     
-    videoContainer.innerHTML = '<div class="grid-container"></div><div class="active-view">Active View</div>';
+    videoContainer.innerHTML = '<div class="grid-container"></div>';
     const gridContainer = videoContainer.querySelector('.grid-container');
     clipList.innerHTML = '';
     videos = [];
@@ -199,7 +199,6 @@ function handleDateTimeChange() {
 
         initializeVideoStates(); // Initialize video states
         updateGridLayout();
-        checkToggleButtons();
     }
 }
 
