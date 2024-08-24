@@ -17,6 +17,8 @@ let isPlaying = false;
 
 let videoStates = {};
 let interactionTimeline = [];
+let videoContext;
+let videoSources = {};
 
 function initializeVideoStates() {
     videos.forEach((video, index) => {
@@ -195,6 +197,7 @@ function handleDateTimeChange() {
             clipList.appendChild(clipItem);
         });
 
+        initializeVideoStates(); // Initialize video states
         updateGridLayout();
         checkToggleButtons();
     }
@@ -278,6 +281,14 @@ function createVideoControls(videoItem) {
 function toggleVideoVisibility(videoItem) {
     const index = parseInt(videoItem.dataset.index);
     const currentTime = videos[0].currentTime;
+
+    if (!videoStates[index]) {
+        videoStates[index] = {
+            isActive: false,
+            isHidden: false,
+            lastActiveTime: 0
+        };
+    }
 
     videoStates[index].isHidden = !videoStates[index].isHidden;
     recordInteraction('toggleVisibility', index, currentTime);
@@ -393,59 +404,6 @@ function handleTimeUpdate(event) {
     });
 }
 
-function exportClips() {
-    const selectedVideos = Array.from(document.querySelectorAll('video'));
-    const exportData = selectedVideos.map(video => video.src);
-
-    // For simplicity, we'll just log the export data
-    console.log('Exporting clips:', exportData);
-
-    // Implement actual export logic here (e.g., creating a zip file)
-}
-
-// Add this function to check if the toggle buttons are working
-function checkToggleButtons() {
-    const videoItems = document.querySelectorAll('.video-item');
-    videoItems.forEach((item, index) => {
-        const visibilityToggle = item.querySelector('.video-controls button:first-child');
-        const primaryToggle = item.querySelector('.video-controls button:last-child');
-        
-        if (visibilityToggle) {
-            visibilityToggle.addEventListener('click', () => {
-                const currentTime = videos[0].currentTime;
-                recordInteraction('toggleVisibility', index, currentTime);
-                videoStates[index].isHidden = !videoStates[index].isHidden;
-                toggleVideoVisibility(item);
-            });
-        }
-        
-        if (primaryToggle) {
-            primaryToggle.addEventListener('click', () => {
-                const currentTime = videos[0].currentTime;
-                recordInteraction('switchActive', index, currentTime);
-                togglePrimaryVideo(event);
-            });
-        }
-    });
-}
-
-let videoContext;
-let videoSources = {};
-
-function initializeVideoContext() {
-    const canvas = document.createElement('canvas');
-    canvas.width = 1280;  // Adjust based on your video resolution
-    canvas.height = 960;
-    videoContext = new VideoContext(canvas);
-}
-
-function prepareVideoSources() {
-    videos.forEach((video, index) => {
-        const source = videoContext.video(video.src);
-        videoSources[index] = source;
-    });
-}
-
 function exportVideoExperience() {
     initializeVideoContext();
     prepareVideoSources();
@@ -488,21 +446,41 @@ function exportVideoExperience() {
     };
 }
 
+function initializeVideoContext() {
+    const canvas = document.createElement('canvas');
+    canvas.width = 1280;  // Adjust based on your video resolution
+    canvas.height = 960;
+    videoContext = new VideoContext(canvas);
+}
+
+function prepareVideoSources() {
+    videos.forEach((video, index) => {
+        const source = videoContext.video(video.src);
+        videoSources[index] = source;
+    });
+}
+
 function applyActiveVideoEffect(videoIndex, startTime, endTime) {
     const source = videoSources[videoIndex];
-    const node = source.startAt(startTime);
-    node.connect(videoContext.destination);
-    node.stop(endTime);
-
-    // Apply any effects or transitions here
+    if (source && typeof source.startAt === 'function') {
+        const node = source.startAt(startTime);
+        node.connect(videoContext.destination);
+        node.stop(endTime);
+    } else {
+        console.error('Invalid video source for index:', videoIndex);
+    }
 }
 
 function applyVisibilityEffect(videoIndex, startTime, endTime) {
     const source = videoSources[videoIndex];
-    const node = source.startAt(startTime);
-    const effect = videoContext.effect(VideoContext.DEFINITIONS.OPACITY);
-    node.connect(effect);
-    effect.connect(videoContext.destination);
-    effect.opacity = videoStates[videoIndex].isHidden ? 0 : 1;
-    node.stop(endTime);
+    if (source && typeof source.startAt === 'function') {
+        const node = source.startAt(startTime);
+        const effect = videoContext.effect(VideoContext.DEFINITIONS.OPACITY);
+        node.connect(effect);
+        effect.connect(videoContext.destination);
+        effect.opacity = videoStates[videoIndex].isHidden ? 0 : 1;
+        node.stop(endTime);
+    } else {
+        console.error('Invalid video source for index:', videoIndex);
+    }
 }
