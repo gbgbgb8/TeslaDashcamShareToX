@@ -128,7 +128,11 @@ function createVideoItem(videoData, index) {
     const controls = createVideoControls(videoItem);
     videoItem.appendChild(controls);
 
-    videoItem.addEventListener('click', togglePrimaryVideo);
+    videoItem.addEventListener('click', (e) => {
+        if (!e.target.closest('.video-controls')) {
+            togglePrimaryVideo(e);
+        }
+    });
 
     return videoItem;
 }
@@ -167,7 +171,7 @@ function createVideoControls(videoItem) {
     primaryToggle.title = 'Set as Primary';
     primaryToggle.addEventListener('click', (e) => {
         e.stopPropagation();
-        togglePrimaryVideo({ currentTarget: videoItem });
+        togglePrimaryVideo(e);
     });
     controls.appendChild(primaryToggle);
 
@@ -180,17 +184,20 @@ function toggleVideoVisibility(videoItem) {
 }
 
 function togglePrimaryVideo(event) {
-    const clickedItem = event.currentTarget;
+    const clickedItem = event.currentTarget.closest('.video-item');
     const gridContainer = clickedItem.closest('.grid-container');
     const currentPrimary = gridContainer.querySelector('.video-item.primary');
 
     if (currentPrimary === clickedItem) {
         clickedItem.classList.remove('primary');
+        clickedItem.classList.add('secondary');
         gridContainer.classList.remove('has-primary');
     } else {
         if (currentPrimary) {
             currentPrimary.classList.remove('primary');
+            currentPrimary.classList.add('secondary');
         }
+        clickedItem.classList.remove('secondary');
         clickedItem.classList.add('primary');
         gridContainer.classList.add('has-primary');
     }
