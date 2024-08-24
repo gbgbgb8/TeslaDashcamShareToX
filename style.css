@@ -30,7 +30,7 @@ body {
     padding: 5px;
 }
 
-.video-item {
+.video-item, .grid-placeholder {
     position: relative;
     border: 2px solid #444;
     border-radius: 8px;
@@ -54,14 +54,13 @@ body {
     border-color: #007bff;
 }
 
-.video-item.secondary {
-    width: 20%;
-    height: 20%;
-    z-index: 2;
-}
-
 .video-item.hidden {
     display: none;
+}
+
+.grid-placeholder {
+    border: 2px dashed #444;
+    background-color: transparent;
 }
 
 .video-label {

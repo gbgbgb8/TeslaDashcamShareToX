@@ -99,6 +99,7 @@ function handleDateTimeChange() {
             videos.push(videoItem.querySelector('video'));
         });
 
+        addPlaceholders(gridContainer);
         initializeGridLayout();
     }
 }
@@ -181,9 +182,20 @@ function initializeGridLayout() {
     updateGridLayout();
 }
 
+function addPlaceholders(gridContainer) {
+    const videoItems = Array.from(gridContainer.children).filter(item => !item.classList.contains('hidden'));
+    const placeholdersNeeded = 4 - videoItems.length;
+
+    for (let i = 0; i < placeholdersNeeded; i++) {
+        const placeholder = document.createElement('div');
+        placeholder.className = 'grid-placeholder';
+        gridContainer.appendChild(placeholder);
+    }
+}
+
 function updateGridLayout() {
     const gridContainer = document.querySelector('.grid-container');
-    const videoItems = Array.from(gridContainer.children).filter(item => !item.classList.contains('hidden'));
+    const videoItems = Array.from(gridContainer.children).filter(item => !item.classList.contains('hidden') && !item.classList.contains('grid-placeholder'));
     const hasPrimary = videoItems.some(item => item.classList.contains('primary'));
 
     videoItems.forEach((item, index) => {
