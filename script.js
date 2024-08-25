@@ -2,7 +2,7 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('fileInput').addEventListener('change', handleFileSelect);
     document.getElementById('dateTimeSelect').addEventListener('change', handleDateTimeChange);
     document.getElementById('standardLayoutButton').addEventListener('click', setStandardLayout);
-    document.getElementById('exportButton').addEventListener('click', showExportModal);
+    document.getElementById('exportButton').addEventListener('click', window.showExportModal);
     document.getElementById('playPauseButton').addEventListener('click', togglePlayPause);
 
     // Initialize any other event listeners or setup code here

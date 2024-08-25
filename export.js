@@ -1,4 +1,3 @@
-let videoSources = {};
 let canvas;
 
 function initializeExport() {
@@ -6,7 +5,8 @@ function initializeExport() {
     exportButton.addEventListener('click', showExportModal);
 }
 
-function showExportModal() {
+// Make showExportModal function available globally
+window.showExportModal = function() {
     const modal = document.createElement('div');
     modal.className = 'modal fade';
     modal.id = 'exportModal';
