@@ -277,6 +277,8 @@ function handleDateTimeChange() {
 
         initializeVideoStates(); // Initialize video states
         updateGridLayout();
+        
+        console.log('Videos after handleDateTimeChange:', videos.map(v => v.src));
     }
 }
 

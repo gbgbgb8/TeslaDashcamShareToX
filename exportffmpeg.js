@@ -38,10 +38,13 @@ async function exportVideo(resolution, exportType) {
         const orderedVideos = [];
         const missingCameras = [];
 
+        console.log('Available videos:', videos.map(v => v.src));
+
         cameraOrder.forEach(cameraType => {
             const video = videos.find(v => {
                 const filename = v.src.split('/').pop();
-                return filename.includes(`-${cameraType}.mp4`);
+                return filename.includes(`-${cameraType}`) || 
+                       filename.includes(cameraType.replace('_repeater', ''));
             });
             if (video) {
                 orderedVideos.push(video);
