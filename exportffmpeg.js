@@ -33,33 +33,32 @@ async function exportVideo(resolution, exportType) {
     progressBar.classList.remove('d-none');
 
     try {
-        // Find the index of the Front camera
-        const frontCameraIndex = videos.findIndex(video => 
-            video.parentElement.querySelector('.video-label').textContent === 'Front'
-        );
+        // Get the order of cameras as they appear in the GUI
+        const cameraOrder = ['Front', 'Back', 'Left', 'Right'];
+        const orderedVideos = cameraOrder.map(cameraType => 
+            videos.find(video => 
+                video.parentElement.querySelector('.video-label').textContent === cameraType
+            )
+        ).filter(Boolean); // Remove any undefined entries
 
-        if (frontCameraIndex === -1) {
-            throw new Error('Front camera not found');
+        if (orderedVideos.length !== 4) {
+            throw new Error('Not all camera angles found');
         }
 
-        // Write input videos to FFmpeg's virtual file system
-        for (let i = 0; i < videos.length; i++) {
+        // Write input videos to FFmpeg's virtual file system in the correct order
+        for (let i = 0; i < orderedVideos.length; i++) {
             const videoName = `input${i}.mp4`;
-            console.log(`Writing video ${i} to FFmpeg FS: ${videoName}`);
-            await ffmpeg.FS('writeFile', videoName, await fetchFile(videos[i].src));
+            console.log(`Writing video ${i} (${cameraOrder[i]}) to FFmpeg FS: ${videoName}`);
+            await ffmpeg.FS('writeFile', videoName, await fetchFile(orderedVideos[i].src));
         }
 
         // Construct the FFmpeg command
         let command = [
-            '-i', `input${frontCameraIndex}.mp4`,
+            '-i', 'input0.mp4', // Front
+            '-i', 'input1.mp4', // Back
+            '-i', 'input2.mp4', // Left
+            '-i', 'input3.mp4', // Right
         ];
-
-        // Add other camera inputs
-        for (let i = 0; i < videos.length; i++) {
-            if (i !== frontCameraIndex) {
-                command.push('-i', `input${i}.mp4`);
-            }
-        }
 
         if (exportType === 'standard') {
             const filterComplex = [
