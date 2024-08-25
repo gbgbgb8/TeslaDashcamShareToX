@@ -7,6 +7,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Initialize any other event listeners or setup code here
     initializeExport(); // Add this line to initialize the export functionality
+
+    // Add this to your DOMContentLoaded event listener
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+      return new bootstrap.Tooltip(tooltipTriggerEl)
+    })
 });
 
 let videoGroups = {};
