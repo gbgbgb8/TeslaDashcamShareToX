@@ -7,6 +7,11 @@ function initializeVideoContext(width, height) {
     try {
         videoContext = new VideoContext(canvas);
         console.log('VideoContext initialized:', videoContext); // Log VideoContext initialization
+        console.log('VideoContext methods:', {
+            play: typeof videoContext.play,
+            onUpdate: typeof videoContext.onUpdate,
+            onEnded: typeof videoContext.onEnded
+        });
     } catch (error) {
         console.error('Error initializing VideoContext:', error);
     }
