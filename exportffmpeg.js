@@ -40,22 +40,13 @@ async function exportVideo(resolution, exportType) {
 
         console.log('Available videos:', videos.map(v => v.src));
 
-        cameraOrder.forEach(cameraType => {
-            const video = videos.find(v => {
-                const filename = v.src.split('/').pop();
-                return filename.includes(`-${cameraType}`) || 
-                       filename.includes(cameraType.replace('_repeater', ''));
-            });
-            if (video) {
-                orderedVideos.push(video);
-            } else {
-                missingCameras.push(cameraType);
-                console.warn(`Camera angle not found: ${cameraType}`);
-            }
+        // Match videos with camera types based on their order
+        videos.forEach((video, index) => {
+            const cameraType = cameraOrder[index] || `unknown_${index}`;
+            orderedVideos.push({ video, cameraType });
         });
 
-        console.log('Found cameras:', orderedVideos.map(v => v.src.split('/').pop()));
-        console.log('Missing cameras:', missingCameras);
+        console.log('Ordered videos:', orderedVideos.map(v => `${v.cameraType}: ${v.video.src}`));
 
         if (orderedVideos.length === 0) {
             throw new Error('No camera angles found');
@@ -64,9 +55,9 @@ async function exportVideo(resolution, exportType) {
         // Write input videos to FFmpeg's virtual file system in the correct order
         for (let i = 0; i < orderedVideos.length; i++) {
             const videoName = `input${i}.mp4`;
-            const filename = orderedVideos[i].src.split('/').pop();
-            console.log(`Writing video ${i} (${filename}) to FFmpeg FS: ${videoName}`);
-            await ffmpeg.FS('writeFile', videoName, await fetchFile(orderedVideos[i].src));
+            const { video, cameraType } = orderedVideos[i];
+            console.log(`Writing video ${i} (${cameraType}) to FFmpeg FS: ${videoName}`);
+            await ffmpeg.FS('writeFile', videoName, await fetchFile(video.src));
         }
 
         // Construct the FFmpeg command
