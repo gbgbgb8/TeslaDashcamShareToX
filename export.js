@@ -165,46 +165,49 @@ function captureFrame() {
     frames.push(canvas.toDataURL('image/jpeg', 0.8));
 }
 
-function encodeAndSaveVideo(width, height) {
-    const worker = new Worker('ffmpeg-worker-mp4.js');
-    worker.onmessage = function(e) {
-        const msg = e.data;
-        switch (msg.type) {
-            case "ready":
-                const files = frames.map((frame, index) => {
-                    return {
-                        name: `frame${index.toString().padStart(6, '0')}.jpg`,
-                        data: frame.split(',')[1]
-                    };
-                });
+async function encodeAndSaveVideo(width, height) {
+    const { createFFmpeg, fetchFile } = FFmpeg;
+    const ffmpeg = createFFmpeg({ log: true });
+    await ffmpeg.load();
 
-                worker.postMessage({
-                    type: "run",
-                    MEMFS: files,
-                    arguments: [
-                        "-framerate", "30",
-                        "-i", "frame%06d.jpg",
-                        "-c:v", "libx264",
-                        "-preset", "slow",
-                        "-crf", "22",
-                        "-s", `${width}x${height}`,
-                        "-pix_fmt", "yuv420p",
-                        "output.mp4"
-                    ]
-                });
-                break;
-            case "done":
-                const blob = new Blob([msg.data.MEMFS[0].data], { type: "video/mp4" });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.style.display = 'none';
-                a.href = url;
-                a.download = 'exported_video.mp4';
-                document.body.appendChild(a);
-                a.click();
-                window.URL.revokeObjectURL(url);
-                frames = []; // Clear frames array
-                break;
-        }
-    };
+    // Write frames to ffmpeg's virtual file system
+    for (let i = 0; i < frames.length; i++) {
+        const frameName = `frame${i.toString().padStart(6, '0')}.jpg`;
+        const frameData = frames[i].split(',')[1];
+        ffmpeg.FS('writeFile', frameName, await fetchFile(frameData));
+    }
+
+    // Run ffmpeg command
+    await ffmpeg.run(
+        '-framerate', '30',
+        '-pattern_type', 'glob',
+        '-i', 'frame*.jpg',
+        '-c:v', 'libx264',
+        '-pix_fmt', 'yuv420p',
+        '-crf', '23',
+        '-preset', 'medium',
+        '-s', `${width}x${height}`,
+        'output.mp4'
+    );
+
+    // Read the result
+    const data = ffmpeg.FS('readFile', 'output.mp4');
+
+    // Create a download link
+    const blob = new Blob([data.buffer], { type: 'video/mp4' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.style.display = 'none';
+    a.href = url;
+    a.download = 'exported_video.mp4';
+    document.body.appendChild(a);
+    a.click();
+    
+    // Clean up
+    setTimeout(() => {
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+    }, 100);
+
+    frames = []; // Clear frames array
 }
