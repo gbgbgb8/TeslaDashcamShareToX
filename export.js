@@ -63,30 +63,30 @@ function startExport(resolution, exportType) {
 
     let isPlaying = false;
 
-    interactionTimeline.forEach((interaction, index) => {
-        const nextInteraction = interactionTimeline[index + 1];
-        const endTime = nextInteraction ? nextInteraction.timestamp : duration;
-
-        switch (interaction.type) {
-            case 'switchActive':
-                applyActiveVideoEffect(interaction.videoIndex, currentTime, endTime);
-                break;
-            case 'toggleVisibility':
-                applyVisibilityEffect(interaction.videoIndex, currentTime, endTime);
-                break;
-            case 'playPause':
-                isPlaying = !isPlaying;
-                applyPlayPauseEffect(isPlaying, currentTime, endTime);
-                break;
-        }
-
-        currentTime = interaction.timestamp;
-    });
-
-    // Modify this part to handle different export types
     if (exportType === 'standard') {
-        // Apply standard layout before exporting
-        setStandardLayout();
+        // For standard export, ignore the interaction timeline and use the standard layout
+        applyStandardLayout();
+    } else {
+        // For custom export, use the interaction timeline
+        interactionTimeline.forEach((interaction, index) => {
+            const nextInteraction = interactionTimeline[index + 1];
+            const endTime = nextInteraction ? nextInteraction.timestamp : duration;
+
+            switch (interaction.type) {
+                case 'switchActive':
+                    applyActiveVideoEffect(interaction.videoIndex, currentTime, endTime);
+                    break;
+                case 'toggleVisibility':
+                    applyVisibilityEffect(interaction.videoIndex, currentTime, endTime);
+                    break;
+                case 'playPause':
+                    isPlaying = !isPlaying;
+                    applyPlayPauseEffect(isPlaying, currentTime, endTime);
+                    break;
+            }
+
+            currentTime = interaction.timestamp;
+        });
     }
 
     // Start the render
@@ -111,6 +111,22 @@ function startExport(resolution, exportType) {
         encodeAndSaveVideo(width, height);
         progressBar.classList.add('d-none');
     };
+}
+
+function applyStandardLayout() {
+    Object.keys(videoSources).forEach((index) => {
+        const source = videoSources[index];
+        const node = source.startAt(0);
+        if (index === '0') { // Assuming index 0 is the front camera
+            node.connect(videoContext.destination);
+        } else {
+            const effect = videoContext.effect(VideoContext.DEFINITIONS.OPACITY);
+            node.connect(effect);
+            effect.connect(videoContext.destination);
+            effect.opacity = 0.5; // Make secondary videos semi-transparent
+        }
+        node.stop(Math.max(...videos.map(v => v.duration)));
+    });
 }
 
 function initializeVideoContext(width, height) {

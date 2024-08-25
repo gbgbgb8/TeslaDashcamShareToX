@@ -202,7 +202,9 @@ function handleFileSelect(event) {
         }
 
         loadingOverlay.classList.add('d-none');
-        document.getElementById('exportButton').disabled = false;
+        // Enable the export buttons
+        document.getElementById('exportStandardButton').disabled = false;
+        document.getElementById('exportCustomButton').disabled = false;
         document.getElementById('playPauseButton').disabled = false;
         updatePlayPauseButton(); // Initialize button state
     });
