@@ -51,7 +51,7 @@ async function exportVideo(resolution, exportType) {
         if (exportType === 'standard') {
             command = command.concat([
                 '-filter_complex',
-                '[0:v]scale=1280:960[v0];[1:v]scale=640:480[v1];[2:v]scale=640:480[v2];[3:v]scale=640:480[v3];' +
+                '[0:v]scale=1280:960[v0];[1:v]scale=320:240[v1];[2:v]scale=320:240[v2];[3:v]scale=320:240[v3];' +
                 '[v0][v1]overlay=W-w:0[top];[top][v2]overlay=0:H-h[almost];[almost][v3]overlay=W-w:H-h[v]',
                 '-map', '[v]',
             ]);
