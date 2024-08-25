@@ -11,6 +11,18 @@ async function initializeFFmpeg() {
     }
 }
 
+async function checkHeaders() {
+    try {
+        const response = await fetch(window.location.href);
+        console.log('Response Headers:');
+        for (let [key, value] of response.headers.entries()) {
+            console.log(`${key}: ${value}`);
+        }
+    } catch (error) {
+        console.error('Error fetching headers:', error);
+    }
+}
+
 async function exportVideo(resolution, exportType) {
     console.log('Starting FFmpeg export...');
     const [width, height] = resolution.split('x').map(Number);
@@ -134,8 +146,9 @@ window.showExportModal = function(exportType) {
     });
 }
 
-// Initialize FFmpeg when the page loads
+// Initialize FFmpeg and check headers when the page loads
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('Document loaded, initializing FFmpeg');
+    console.log('Document loaded, initializing FFmpeg and checking headers');
     initializeFFmpeg();
+    checkHeaders();
 });
