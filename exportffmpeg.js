@@ -33,6 +33,15 @@ async function exportVideo(resolution, exportType) {
     progressBar.classList.remove('d-none');
 
     try {
+        // Find the index of the Front camera
+        const frontCameraIndex = videos.findIndex(video => 
+            video.parentElement.querySelector('.video-label').textContent === 'Front'
+        );
+
+        if (frontCameraIndex === -1) {
+            throw new Error('Front camera not found');
+        }
+
         // Write input videos to FFmpeg's virtual file system
         for (let i = 0; i < videos.length; i++) {
             const videoName = `input${i}.mp4`;
@@ -42,17 +51,29 @@ async function exportVideo(resolution, exportType) {
 
         // Construct the FFmpeg command
         let command = [
-            '-i', 'input0.mp4',
-            '-i', 'input1.mp4',
-            '-i', 'input2.mp4',
-            '-i', 'input3.mp4',
+            '-i', `input${frontCameraIndex}.mp4`,
         ];
 
+        // Add other camera inputs
+        for (let i = 0; i < videos.length; i++) {
+            if (i !== frontCameraIndex) {
+                command.push('-i', `input${i}.mp4`);
+            }
+        }
+
         if (exportType === 'standard') {
+            const filterComplex = [
+                `[0:v]scale=1280:960[v0];`,
+                `[1:v]scale=320:240[v1];`,
+                `[2:v]scale=320:240[v2];`,
+                `[3:v]scale=320:240[v3];`,
+                `[v0][v1]overlay=W-w:0[top];`,
+                `[top][v2]overlay=0:H-h[almost];`,
+                `[almost][v3]overlay=W-w:H-h[v]`
+            ].join('');
+
             command = command.concat([
-                '-filter_complex',
-                '[0:v]scale=1280:960[v0];[1:v]scale=320:240[v1];[2:v]scale=320:240[v2];[3:v]scale=320:240[v3];' +
-                '[v0][v1]overlay=W-w:0[top];[top][v2]overlay=0:H-h[almost];[almost][v3]overlay=W-w:H-h[v]',
+                '-filter_complex', filterComplex,
                 '-map', '[v]',
             ]);
         } else {
