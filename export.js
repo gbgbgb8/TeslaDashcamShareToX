@@ -33,10 +33,10 @@ function applyStandardLayout() {
                 }
                 node.stop(videoContext.duration);
             } else {
-                console.error('Invalid node for index:', index);
+                console.error('Invalid node for index:', index, node);
             }
         } else {
-            console.error('Invalid video source for index:', index);
+            console.error('Invalid video source for index:', index, source);
         }
     });
 }
@@ -64,16 +64,20 @@ function startExport(resolution, exportType) {
         return;
     }
 
-    videoContext.play();
-    videoContext.onUpdate(() => {
-        const progress = (videoContext.currentTime / videoContext.duration) * 100;
-        progressBarInner.style.width = `${progress}%`;
-        captureFrame();
-    });
+    if (typeof videoContext.play === 'function' && typeof videoContext.onUpdate === 'function' && typeof videoContext.onEnded === 'function') {
+        videoContext.play();
+        videoContext.onUpdate(() => {
+            const progress = (videoContext.currentTime / videoContext.duration) * 100;
+            progressBarInner.style.width = `${progress}%`;
+            captureFrame();
+        });
 
-    videoContext.onEnded(() => {
-        encodeAndSaveVideo(width, height);
-    });
+        videoContext.onEnded(() => {
+            encodeAndSaveVideo(width, height);
+        });
+    } else {
+        console.error('VideoContext methods are not available. Ensure the library is correctly initialized.');
+    }
 }
 
 // Update showExportModal function to accept an exportType parameter
