@@ -244,7 +244,7 @@ function handleDateTimeChange() {
         videoGroups[selectedDateTime].forEach((videoData, index) => {
             const videoItem = createVideoItem(videoData, index);
             gridContainer.appendChild(videoItem);
-            videos.push(videoItem.querySelector('video'));
+            videos.push(videoItem.querySelector('video')); // Store the video element
 
             const clipItem = createClipItem(videoData, index);
             clipList.appendChild(clipItem);

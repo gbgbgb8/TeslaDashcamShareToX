@@ -55,15 +55,16 @@ function initializeVideoContext(width, height) {
 function prepareVideoSources() {
     videoSources = {};
     videos.forEach((video, index) => {
-        videoSources[index] = videoContext.video(video);
+        const source = videoContext.video(video.src);
+        videoSources[index] = source;
     });
 }
 
 function applyStandardLayout() {
     Object.keys(videoSources).forEach((index, i) => {
         const source = videoSources[index];
-        if (source && typeof source.startAt === 'function') {
-            const node = source.startAt(0);
+        if (source && typeof source.start === 'function') {
+            const node = source.start(0);
             if (i === 0) { // Assuming index 0 is the front camera
                 node.connect(videoContext.destination);
             } else {
@@ -72,7 +73,6 @@ function applyStandardLayout() {
                 effect.connect(videoContext.destination);
                 effect.opacity = 0.5; // Make secondary videos semi-transparent
             }
-            node.start(0);
             node.stop(videoContext.duration);
         } else {
             console.error('Invalid video source for index:', index);
