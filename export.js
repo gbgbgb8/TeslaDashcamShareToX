@@ -40,9 +40,11 @@ function startExport(resolution, exportType) {
         console.error('VideoContext is not defined. Make sure the library is loaded.');
         return;
     }
+    console.log('Starting export...'); // Add this line
     const [width, height] = resolution.split('x').map(Number);
     initializeVideoContext(width, height);
     prepareVideoSources();
+    console.log('Video sources prepared:', videoSources); // Add this line
 
     const progressBar = document.querySelector('.progress');
     const progressBarInner = progressBar.querySelector('.progress-bar');
