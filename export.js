@@ -1,6 +1,4 @@
 let canvas;
-let videoContext;
-let videoSources = {};
 
 function initializeVideoContext(width, height) {
     canvas = document.createElement('canvas');
