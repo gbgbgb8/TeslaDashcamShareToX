@@ -6,6 +6,7 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('playPauseButton').addEventListener('click', togglePlayPause);
 
     // Initialize any other event listeners or setup code here
+    initializeExport(); // Add this line to initialize the export functionality
 });
 
 let videoGroups = {};
@@ -446,85 +447,4 @@ function handleTimeUpdate(event) {
             video.currentTime = event.target.currentTime;
         }
     });
-}
-
-function exportVideoExperience() {
-    initializeVideoContext();
-    prepareVideoSources();
-
-    let currentTime = 0;
-    const duration = Math.max(...videos.map(v => v.duration));
-
-    interactionTimeline.forEach((interaction, index) => {
-        const nextInteraction = interactionTimeline[index + 1];
-        const endTime = nextInteraction ? nextInteraction.timestamp : duration;
-
-        switch (interaction.type) {
-            case 'switchActive':
-                applyActiveVideoEffect(interaction.videoIndex, currentTime, endTime);
-                break;
-            case 'toggleVisibility':
-                applyVisibilityEffect(interaction.videoIndex, currentTime, endTime);
-                break;
-            // Handle other interaction types as needed
-        }
-
-        currentTime = interaction.timestamp;
-    });
-
-    // Start the render
-    videoContext.play();
-    videoContext.startRendering();
-
-    // When rendering is finished, save the video
-    videoContext.onComplete = function() {
-        const blob = new Blob([videoContext.canvas.toDataURL('image/webm')], {type: 'video/webm'});
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.style.display = 'none';
-        a.href = url;
-        a.download = 'exported_video_experience.webm';
-        document.body.appendChild(a);
-        a.click();
-        window.URL.revokeObjectURL(url);
-    };
-}
-
-function initializeVideoContext() {
-    const canvas = document.createElement('canvas');
-    canvas.width = 1280;  // Adjust based on your video resolution
-    canvas.height = 960;
-    videoContext = new VideoContext(canvas);
-}
-
-function prepareVideoSources() {
-    videos.forEach((video, index) => {
-        const source = videoContext.video(video.src);
-        videoSources[index] = source;
-    });
-}
-
-function applyActiveVideoEffect(videoIndex, startTime, endTime) {
-    const source = videoSources[videoIndex];
-    if (source && typeof source.startAt === 'function') {
-        const node = source.startAt(startTime);
-        node.connect(videoContext.destination);
-        node.stop(endTime);
-    } else {
-        console.error('Invalid video source for index:', videoIndex);
-    }
-}
-
-function applyVisibilityEffect(videoIndex, startTime, endTime) {
-    const source = videoSources[videoIndex];
-    if (source && typeof source.startAt === 'function') {
-        const node = source.startAt(startTime);
-        const effect = videoContext.effect(VideoContext.DEFINITIONS.OPACITY);
-        node.connect(effect);
-        effect.connect(videoContext.destination);
-        effect.opacity = videoStates[videoIndex].isHidden ? 0 : 1;
-        node.stop(endTime);
-    } else {
-        console.error('Invalid video source for index:', videoIndex);
-    }
 }
