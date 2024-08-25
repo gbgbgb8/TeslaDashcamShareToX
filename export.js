@@ -4,8 +4,12 @@ function initializeVideoContext(width, height) {
     canvas = document.createElement('canvas');
     canvas.width = width;
     canvas.height = height;
-    videoContext = new VideoContext(canvas);
-    console.log('VideoContext initialized:', videoContext); // Log VideoContext initialization
+    try {
+        videoContext = new VideoContext(canvas);
+        console.log('VideoContext initialized:', videoContext); // Log VideoContext initialization
+    } catch (error) {
+        console.error('Error initializing VideoContext:', error);
+    }
 }
 
 function prepareVideoSources() {
