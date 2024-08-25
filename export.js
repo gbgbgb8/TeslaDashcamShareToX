@@ -1,10 +1,5 @@
 let canvas;
-let videoContext;
 let videoSources = {};
-
-function initializeExport() {
-    // No need to add event listeners here anymore
-}
 
 // Update showExportModal function to accept an exportType parameter
 window.showExportModal = function(exportType) {

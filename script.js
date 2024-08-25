@@ -6,9 +6,6 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('exportCustomButton').addEventListener('click', () => showExportModal('custom'));
     document.getElementById('playPauseButton').addEventListener('click', togglePlayPause);
 
-    // Initialize any other event listeners or setup code here
-    initializeExport(); // Add this line to initialize the export functionality
-
     // Initialize tooltips
     var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
     var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
