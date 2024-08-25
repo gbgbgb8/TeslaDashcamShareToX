@@ -31,11 +31,52 @@ function initializeVideoStates() {
 }
 
 function recordInteraction(type, videoIndex, timestamp) {
-    interactionTimeline.push({
+    const interaction = {
         type: type,
         videoIndex: videoIndex,
         timestamp: timestamp
-    });
+    };
+    interactionTimeline.push(interaction);
+    logInteraction(interaction);
+}
+
+function logInteraction(interaction) {
+    const logElement = document.getElementById('interactionLog');
+    const logEntry = document.createElement('p');
+    const formattedTime = formatTimestamp(interaction.timestamp);
+    let actionText = '';
+
+    switch (interaction.type) {
+        case 'switchActive':
+            actionText = `Switched active video to ${getCameraType(interaction.videoIndex)}`;
+            break;
+        case 'toggleVisibility':
+            const isHidden = videoStates[interaction.videoIndex].isHidden;
+            actionText = `${isHidden ? 'Hidden' : 'Shown'} ${getCameraType(interaction.videoIndex)} video`;
+            break;
+        case 'play':
+            actionText = 'Played videos';
+            break;
+        case 'pause':
+            actionText = 'Paused videos';
+            break;
+        default:
+            actionText = `${interaction.type} action on ${getCameraType(interaction.videoIndex)}`;
+    }
+
+    logEntry.textContent = `${formattedTime}: ${actionText}`;
+    logElement.insertBefore(logEntry, logElement.firstChild);
+}
+
+function formatTimestamp(timestamp) {
+    const date = new Date(null);
+    date.setSeconds(timestamp);
+    return date.toISOString().substr(11, 8);
+}
+
+function getCameraType(videoIndex) {
+    const videoItem = document.querySelector(`.video-item[data-index="${videoIndex}"]`);
+    return videoItem ? videoItem.querySelector('.video-label').textContent : 'Unknown';
 }
 
 function togglePlayPause() {
@@ -76,6 +117,8 @@ function pauseAllVideos() {
 }
 
 function handlePlay(event) {
+    const currentTime = event.target.currentTime;
+    recordInteraction('play', null, currentTime);
     if (!isPlaying) {
         isPlaying = true;
         updatePlayPauseButton();
@@ -91,6 +134,8 @@ function handlePlay(event) {
 }
 
 function handlePause(event) {
+    const currentTime = event.target.currentTime;
+    recordInteraction('pause', null, currentTime);
     isPlaying = false;
     updatePlayPauseButton();
     videos.forEach(video => {
@@ -301,7 +346,6 @@ function togglePrimaryVideo(event) {
     const index = parseInt(clickedItem.dataset.index);
     const currentTime = videos[0].currentTime; // Assuming all videos are in sync
 
-    // Record the interaction
     recordInteraction('switchActive', index, currentTime);
 
     // Update video states
