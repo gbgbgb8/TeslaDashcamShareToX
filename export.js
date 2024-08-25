@@ -11,6 +11,7 @@ function prepareVideoSources() {
     videoSources = {};
     videos.forEach((video, index) => {
         const source = videoContext.video(video);
+        console.log(`Source for video ${index}:`, source); // Add this line to log the source
         videoSources[index] = source;
     });
 }
@@ -20,15 +21,20 @@ function applyStandardLayout() {
         const source = videoSources[index];
         if (source && typeof source.start === 'function') {
             const node = source.start(0);
-            if (i === 0) { // Assuming index 0 is the front camera
-                node.connect(videoContext.destination);
+            console.log(`Node for index ${index}:`, node); // Add this line to log the node
+            if (node && typeof node.connect === 'function') {
+                if (i === 0) { // Assuming index 0 is the front camera
+                    node.connect(videoContext.destination);
+                } else {
+                    const effect = videoContext.effect(VideoContext.DEFINITIONS.OPACITY);
+                    node.connect(effect);
+                    effect.connect(videoContext.destination);
+                    effect.opacity = 0.5; // Make secondary videos semi-transparent
+                }
+                node.stop(videoContext.duration);
             } else {
-                const effect = videoContext.effect(VideoContext.DEFINITIONS.OPACITY);
-                node.connect(effect);
-                effect.connect(videoContext.destination);
-                effect.opacity = 0.5; // Make secondary videos semi-transparent
+                console.error('Invalid node for index:', index);
             }
-            node.stop(videoContext.duration);
         } else {
             console.error('Invalid video source for index:', index);
         }
