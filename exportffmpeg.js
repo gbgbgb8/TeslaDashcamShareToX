@@ -2,13 +2,19 @@ const { createFFmpeg, fetchFile } = FFmpeg;
 const ffmpeg = createFFmpeg({ log: true });
 
 async function initializeFFmpeg() {
-    await ffmpeg.load();
-    console.log('FFmpeg initialized');
+    console.log('Initializing FFmpeg...');
+    try {
+        await ffmpeg.load();
+        console.log('FFmpeg initialized');
+    } catch (error) {
+        console.error('Error initializing FFmpeg:', error);
+    }
 }
 
 async function exportVideo(resolution, exportType) {
     console.log('Starting FFmpeg export...');
     const [width, height] = resolution.split('x').map(Number);
+    console.log(`Resolution: ${width}x${height}, Export Type: ${exportType}`);
 
     const progressBar = document.querySelector('.progress');
     const progressBarInner = progressBar.querySelector('.progress-bar');
@@ -18,7 +24,8 @@ async function exportVideo(resolution, exportType) {
         // Write input videos to FFmpeg's virtual file system
         for (let i = 0; i < videos.length; i++) {
             const videoName = `input${i}.mp4`;
-            ffmpeg.FS('writeFile', videoName, await fetchFile(videos[i].src));
+            console.log(`Writing video ${i} to FFmpeg FS: ${videoName}`);
+            await ffmpeg.FS('writeFile', videoName, await fetchFile(videos[i].src));
         }
 
         // Construct the FFmpeg command
@@ -48,13 +55,16 @@ async function exportVideo(resolution, exportType) {
             'output.mp4'
         ]);
 
+        console.log('Running FFmpeg command:', command.join(' '));
         // Run the FFmpeg command
         await ffmpeg.run(...command);
 
         // Read the result
+        console.log('Reading output file from FFmpeg FS');
         const data = ffmpeg.FS('readFile', 'output.mp4');
 
         // Create a download link
+        console.log('Creating download link for output file');
         const blob = new Blob([data.buffer], { type: 'video/mp4' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -79,6 +89,7 @@ async function exportVideo(resolution, exportType) {
 
 // Update showExportModal function to use FFmpeg export
 window.showExportModal = function(exportType) {
+    console.log('Showing export modal for type:', exportType);
     const modal = document.createElement('div');
     modal.className = 'modal fade';
     modal.id = 'exportModal';
@@ -117,10 +128,14 @@ window.showExportModal = function(exportType) {
 
     document.getElementById('startExportButton').addEventListener('click', () => {
         const resolution = document.getElementById('resolutionSelect').value;
+        console.log('Starting export with resolution:', resolution);
         exportModal.hide();
         exportVideo(resolution, exportType);
     });
 }
 
 // Initialize FFmpeg when the page loads
-document.addEventListener('DOMContentLoaded', initializeFFmpeg);
+document.addEventListener('DOMContentLoaded', () => {
+    console.log('Document loaded, initializing FFmpeg');
+    initializeFFmpeg();
+});
