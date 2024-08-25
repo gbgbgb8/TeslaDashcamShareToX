@@ -35,44 +35,63 @@ async function exportVideo(resolution, exportType) {
     try {
         // Get the order of cameras as they appear in the GUI
         const cameraOrder = ['Front', 'Back', 'Left', 'Right'];
-        const orderedVideos = cameraOrder.map(cameraType => 
-            videos.find(video => 
-                video.parentElement.querySelector('.video-label').textContent === cameraType
-            )
-        ).filter(Boolean); // Remove any undefined entries
+        const orderedVideos = [];
+        const missingCameras = [];
 
-        if (orderedVideos.length !== 4) {
-            throw new Error('Not all camera angles found');
+        cameraOrder.forEach(cameraType => {
+            const video = videos.find(v => 
+                v.parentElement.querySelector('.video-label').textContent === cameraType
+            );
+            if (video) {
+                orderedVideos.push(video);
+            } else {
+                missingCameras.push(cameraType);
+                console.warn(`Camera angle not found: ${cameraType}`);
+            }
+        });
+
+        console.log('Found cameras:', orderedVideos.map(v => v.parentElement.querySelector('.video-label').textContent));
+        console.log('Missing cameras:', missingCameras);
+
+        if (orderedVideos.length === 0) {
+            throw new Error('No camera angles found');
         }
 
         // Write input videos to FFmpeg's virtual file system in the correct order
         for (let i = 0; i < orderedVideos.length; i++) {
             const videoName = `input${i}.mp4`;
-            console.log(`Writing video ${i} (${cameraOrder[i]}) to FFmpeg FS: ${videoName}`);
+            const cameraType = orderedVideos[i].parentElement.querySelector('.video-label').textContent;
+            console.log(`Writing video ${i} (${cameraType}) to FFmpeg FS: ${videoName}`);
             await ffmpeg.FS('writeFile', videoName, await fetchFile(orderedVideos[i].src));
         }
 
         // Construct the FFmpeg command
-        let command = [
-            '-i', 'input0.mp4', // Front
-            '-i', 'input1.mp4', // Back
-            '-i', 'input2.mp4', // Left
-            '-i', 'input3.mp4', // Right
-        ];
+        let command = orderedVideos.map((_, i) => ['-i', `input${i}.mp4`]).flat();
 
         if (exportType === 'standard') {
-            const filterComplex = [
-                `[0:v]scale=1280:960[v0];`,
-                `[1:v]scale=320:240[v1];`,
-                `[2:v]scale=320:240[v2];`,
-                `[3:v]scale=320:240[v3];`,
-                `[v0][v1]overlay=W-w:0[top];`,
-                `[top][v2]overlay=0:H-h[almost];`,
-                `[almost][v3]overlay=W-w:H-h[v]`
-            ].join('');
+            let filterComplex = [];
+            orderedVideos.forEach((_, i) => {
+                filterComplex.push(`[${i}:v]scale=${i === 0 ? '1280:960' : '320:240'}[v${i}];`);
+            });
+
+            if (orderedVideos.length > 1) {
+                filterComplex.push(`[v0][v1]overlay=W-w:0[top];`);
+                if (orderedVideos.length > 2) {
+                    filterComplex.push(`[top][v2]overlay=0:H-h[almost];`);
+                    if (orderedVideos.length > 3) {
+                        filterComplex.push(`[almost][v3]overlay=W-w:H-h[v]`);
+                    } else {
+                        filterComplex.push(`[almost]null[v]`);
+                    }
+                } else {
+                    filterComplex.push(`[top]null[v]`);
+                }
+            } else {
+                filterComplex.push(`[v0]null[v]`);
+            }
 
             command = command.concat([
-                '-filter_complex', filterComplex,
+                '-filter_complex', filterComplex.join(''),
                 '-map', '[v]',
             ]);
         } else {
