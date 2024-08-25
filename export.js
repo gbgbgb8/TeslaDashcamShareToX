@@ -1,4 +1,74 @@
 let canvas;
+let videoContext;
+let videoSources = {};
+
+function initializeVideoContext(width, height) {
+    canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    videoContext = new VideoContext(canvas);
+}
+
+function prepareVideoSources() {
+    videoSources = {};
+    videos.forEach((video, index) => {
+        const source = videoContext.video(video);
+        videoSources[index] = source;
+    });
+}
+
+function applyStandardLayout() {
+    Object.keys(videoSources).forEach((index, i) => {
+        const source = videoSources[index];
+        if (source && typeof source.start === 'function') {
+            const node = source.start(0);
+            if (i === 0) { // Assuming index 0 is the front camera
+                node.connect(videoContext.destination);
+            } else {
+                const effect = videoContext.effect(VideoContext.DEFINITIONS.OPACITY);
+                node.connect(effect);
+                effect.connect(videoContext.destination);
+                effect.opacity = 0.5; // Make secondary videos semi-transparent
+            }
+            node.stop(videoContext.duration);
+        } else {
+            console.error('Invalid video source for index:', index);
+        }
+    });
+}
+
+function startExport(resolution, exportType) {
+    if (typeof VideoContext === 'undefined') {
+        console.error('VideoContext is not defined. Make sure the library is loaded.');
+        return;
+    }
+    const [width, height] = resolution.split('x').map(Number);
+    initializeVideoContext(width, height);
+    prepareVideoSources();
+
+    const progressBar = document.querySelector('.progress');
+    const progressBarInner = progressBar.querySelector('.progress-bar');
+    progressBar.classList.remove('d-none');
+
+    if (exportType === 'standard') {
+        applyStandardLayout();
+    } else {
+        // Implement custom layout logic here
+        console.log('Custom export not implemented yet');
+        return;
+    }
+
+    videoContext.play();
+    videoContext.onUpdate(() => {
+        const progress = (videoContext.currentTime / videoContext.duration) * 100;
+        progressBarInner.style.width = `${progress}%`;
+        captureFrame();
+    });
+
+    videoContext.onEnded(() => {
+        encodeAndSaveVideo(width, height);
+    });
+}
 
 // Update showExportModal function to accept an exportType parameter
 window.showExportModal = function(exportType) {
@@ -42,70 +112,6 @@ window.showExportModal = function(exportType) {
         const resolution = document.getElementById('resolutionSelect').value;
         exportModal.hide();
         startExport(resolution, exportType);
-    });
-}
-
-function initializeVideoContext(width, height) {
-    canvas = document.createElement('canvas');
-    canvas.width = width;
-    canvas.height = height;
-    videoContext = new VideoContext(canvas);
-}
-
-function prepareVideoSources() {
-    videoSources = {};
-    videos.forEach((video, index) => {
-        const source = videoContext.video(video.src);
-        videoSources[index] = source;
-    });
-}
-
-function applyStandardLayout() {
-    Object.keys(videoSources).forEach((index, i) => {
-        const source = videoSources[index];
-        if (source && typeof source.start === 'function') {
-            const node = source.start(0);
-            if (i === 0) { // Assuming index 0 is the front camera
-                node.connect(videoContext.destination);
-            } else {
-                const effect = videoContext.effect(VideoContext.DEFINITIONS.OPACITY);
-                node.connect(effect);
-                effect.connect(videoContext.destination);
-                effect.opacity = 0.5; // Make secondary videos semi-transparent
-            }
-            node.stop(videoContext.duration);
-        } else {
-            console.error('Invalid video source for index:', index);
-        }
-    });
-}
-
-function startExport(resolution, exportType) {
-    const [width, height] = resolution.split('x').map(Number);
-    initializeVideoContext(width, height);
-    prepareVideoSources();
-
-    const progressBar = document.querySelector('.progress');
-    const progressBarInner = progressBar.querySelector('.progress-bar');
-    progressBar.classList.remove('d-none');
-
-    if (exportType === 'standard') {
-        applyStandardLayout();
-    } else {
-        // Implement custom layout logic here
-        console.log('Custom export not implemented yet');
-        return;
-    }
-
-    videoContext.play();
-    videoContext.onUpdate(() => {
-        const progress = (videoContext.currentTime / videoContext.duration) * 100;
-        progressBarInner.style.width = `${progress}%`;
-        captureFrame();
-    });
-
-    videoContext.onEnded(() => {
-        encodeAndSaveVideo(width, height);
     });
 }
 
