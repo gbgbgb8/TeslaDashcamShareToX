@@ -1,5 +1,4 @@
 let canvas;
-let videoSources = {};
 
 // Update showExportModal function to accept an exportType parameter
 window.showExportModal = function(exportType) {
