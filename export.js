@@ -151,11 +151,17 @@ function applyPlayPauseEffect(isPlaying, startTime, endTime) {
     Object.values(videoSources).forEach(source => {
         if (isPlaying) {
             const node = source.startAt(startTime);
-            node.connect(videoContext.destination);
-            node.stop(endTime);
+            if (node && typeof node.connect === 'function') {
+                node.connect(videoContext.destination);
+                node.stop(endTime);
+            }
         } else {
             // If paused, we don't connect the source to the destination
             // This effectively "pauses" the video in the export
+            const node = source.startAt(startTime);
+            if (node && typeof node.stop === 'function') {
+                node.stop(startTime);
+            }
         }
     });
 }
