@@ -5,13 +5,14 @@ function initializeVideoContext(width, height) {
     canvas.width = width;
     canvas.height = height;
     videoContext = new VideoContext(canvas);
+    console.log('VideoContext initialized:', videoContext); // Log VideoContext initialization
 }
 
 function prepareVideoSources() {
     videoSources = {};
     videos.forEach((video, index) => {
         const source = videoContext.video(video);
-        console.log(`Source for video ${index}:`, source); // Add this line to log the source
+        console.log(`Source for video ${index}:`, source); // Log the source
         videoSources[index] = source;
     });
 }
@@ -21,7 +22,7 @@ function applyStandardLayout() {
         const source = videoSources[index];
         if (source && typeof source.start === 'function') {
             const node = source.start(0);
-            console.log(`Node for index ${index}:`, node); // Add this line to log the node
+            console.log(`Node for index ${index}:`, node); // Log the node
             if (node && typeof node.connect === 'function') {
                 if (i === 0) { // Assuming index 0 is the front camera
                     node.connect(videoContext.destination);
@@ -46,11 +47,11 @@ function startExport(resolution, exportType) {
         console.error('VideoContext is not defined. Make sure the library is loaded.');
         return;
     }
-    console.log('Starting export...'); // Add this line
+    console.log('Starting export...'); // Log export start
     const [width, height] = resolution.split('x').map(Number);
     initializeVideoContext(width, height);
     prepareVideoSources();
-    console.log('Video sources prepared:', videoSources); // Add this line
+    console.log('Video sources prepared:', videoSources); // Log video sources
 
     const progressBar = document.querySelector('.progress');
     const progressBarInner = progressBar.querySelector('.progress-bar');
