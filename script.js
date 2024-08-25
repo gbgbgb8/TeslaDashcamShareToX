@@ -19,6 +19,7 @@ let videoIdCounter = 0;
 let gridLayout = [];
 
 let isPlaying = false;
+let isTransitioning = false;
 
 let videoStates = {};
 let interactionTimeline = [];
@@ -82,15 +83,23 @@ function getCameraType(videoIndex) {
 }
 
 function togglePlayPause() {
+    if (isTransitioning) return;
+    isTransitioning = true;
+    
     isPlaying = !isPlaying;
     updatePlayPauseButton();
     const currentTime = videos[0].currentTime;
     recordInteraction('playPause', null, currentTime);
+    
     if (isPlaying) {
         playAllVideos();
     } else {
         pauseAllVideos();
     }
+    
+    setTimeout(() => {
+        isTransitioning = false;
+    }, 300); // Debounce for 300ms
 }
 
 function updatePlayPauseButton() {
@@ -110,6 +119,7 @@ function playAllVideos() {
     videos.forEach(video => {
         video.play().catch(e => {
             // Silently handle errors
+            console.log('Error playing video:', e);
         });
     });
 }
@@ -121,6 +131,9 @@ function pauseAllVideos() {
 }
 
 function handlePlay(event) {
+    if (isTransitioning) return;
+    isTransitioning = true;
+    
     if (!isPlaying) {
         isPlaying = true;
         updatePlayPauseButton();
@@ -132,12 +145,20 @@ function handlePlay(event) {
             video.currentTime = event.target.currentTime;
             video.play().catch(e => {
                 // Silently handle errors
+                console.log('Error playing video:', e);
             });
         }
     });
+    
+    setTimeout(() => {
+        isTransitioning = false;
+    }, 300); // Debounce for 300ms
 }
 
 function handlePause(event) {
+    if (isTransitioning) return;
+    isTransitioning = true;
+    
     if (isPlaying) {
         isPlaying = false;
         updatePlayPauseButton();
@@ -149,6 +170,10 @@ function handlePause(event) {
             video.pause();
         }
     });
+    
+    setTimeout(() => {
+        isTransitioning = false;
+    }, 300); // Debounce for 300ms
 }
 
 function handleFileSelect(event) {
