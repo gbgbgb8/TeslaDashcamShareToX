@@ -2,13 +2,14 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('fileInput').addEventListener('change', handleFileSelect);
     document.getElementById('dateTimeSelect').addEventListener('change', handleDateTimeChange);
     document.getElementById('standardLayoutButton').addEventListener('click', setStandardLayout);
-    document.getElementById('exportButton').addEventListener('click', window.showExportModal);
+    document.getElementById('exportStandardButton').addEventListener('click', () => showExportModal('standard'));
+    document.getElementById('exportCustomButton').addEventListener('click', () => showExportModal('custom'));
     document.getElementById('playPauseButton').addEventListener('click', togglePlayPause);
 
     // Initialize any other event listeners or setup code here
     initializeExport(); // Add this line to initialize the export functionality
 
-    // Add this to your DOMContentLoaded event listener
+    // Initialize tooltips
     var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
     var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
       return new bootstrap.Tooltip(tooltipTriggerEl)

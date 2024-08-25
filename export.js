@@ -1,12 +1,11 @@
 let canvas;
 
 function initializeExport() {
-    const exportButton = document.getElementById('exportButton');
-    exportButton.addEventListener('click', showExportModal);
+    // No need to add event listeners here anymore
 }
 
-// Make showExportModal function available globally
-window.showExportModal = function() {
+// Update showExportModal function to accept an exportType parameter
+window.showExportModal = function(exportType) {
     const modal = document.createElement('div');
     modal.className = 'modal fade';
     modal.id = 'exportModal';
@@ -14,7 +13,7 @@ window.showExportModal = function() {
         <div class="modal-dialog">
             <div class="modal-content bg-dark text-light">
                 <div class="modal-header">
-                    <h5 class="modal-title">Export Video</h5>
+                    <h5 class="modal-title">Export ${exportType.charAt(0).toUpperCase() + exportType.slice(1)} Video</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
@@ -46,11 +45,11 @@ window.showExportModal = function() {
     document.getElementById('startExportButton').addEventListener('click', () => {
         const resolution = document.getElementById('resolutionSelect').value;
         exportModal.hide();
-        startExport(resolution);
+        startExport(resolution, exportType);
     });
 }
 
-function startExport(resolution) {
+function startExport(resolution, exportType) {
     const [width, height] = resolution.split('x').map(Number);
     initializeVideoContext(width, height);
     prepareVideoSources();
@@ -83,6 +82,12 @@ function startExport(resolution) {
 
         currentTime = interaction.timestamp;
     });
+
+    // Modify this part to handle different export types
+    if (exportType === 'standard') {
+        // Apply standard layout before exporting
+        setStandardLayout();
+    }
 
     // Start the render
     videoContext.play();
