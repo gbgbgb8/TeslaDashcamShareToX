@@ -54,14 +54,11 @@ function logInteraction(interaction) {
             const isHidden = videoStates[interaction.videoIndex].isHidden;
             actionText = `${isHidden ? 'Hidden' : 'Shown'} ${getCameraType(interaction.videoIndex)} video`;
             break;
-        case 'play':
-            actionText = 'Played videos';
-            break;
-        case 'pause':
-            actionText = 'Paused videos';
+        case 'playPause':
+            actionText = isPlaying ? 'Played videos' : 'Paused videos';
             break;
         default:
-            actionText = `${interaction.type} action on ${getCameraType(interaction.videoIndex)}`;
+            return; // Don't log other events
     }
 
     logEntry.textContent = `${formattedTime}: ${actionText}`;
@@ -82,6 +79,8 @@ function getCameraType(videoIndex) {
 function togglePlayPause() {
     isPlaying = !isPlaying;
     updatePlayPauseButton();
+    const currentTime = videos[0].currentTime;
+    recordInteraction('playPause', null, currentTime);
     if (isPlaying) {
         playAllVideos();
     } else {
@@ -117,11 +116,11 @@ function pauseAllVideos() {
 }
 
 function handlePlay(event) {
-    const currentTime = event.target.currentTime;
-    recordInteraction('play', null, currentTime);
     if (!isPlaying) {
         isPlaying = true;
         updatePlayPauseButton();
+        const currentTime = event.target.currentTime;
+        recordInteraction('playPause', null, currentTime);
     }
     videos.forEach(video => {
         if (video !== event.target) {
@@ -134,10 +133,12 @@ function handlePlay(event) {
 }
 
 function handlePause(event) {
-    const currentTime = event.target.currentTime;
-    recordInteraction('pause', null, currentTime);
-    isPlaying = false;
-    updatePlayPauseButton();
+    if (isPlaying) {
+        isPlaying = false;
+        updatePlayPauseButton();
+        const currentTime = event.target.currentTime;
+        recordInteraction('playPause', null, currentTime);
+    }
     videos.forEach(video => {
         if (video !== event.target) {
             video.pause();
