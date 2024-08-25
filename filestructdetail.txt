@@ -53,3 +53,12 @@ Example from a real Tesla Dashcam:
 2024-07-17_16-32-54-right_repeater.mp4
 2024-07-17_16-32-54-front.mp4
 2024-07-17_16-32-54-left_repeater.mp4
+
+2024-07-17_16-32-54-back.mp4		2024-08-24_12-03-21-front.mp4
+2024-07-17_16-32-54-front.mp4		2024-08-24_12-03-21-left_repeater.mp4
+2024-07-17_16-32-54-left_repeater.mp4	2024-08-24_12-03-21-right_repeater.mp4
+2024-07-17_16-32-54-right_repeater.mp4	2024-08-24_12-04-22-back.mp4
+2024-08-24_12-02-21-front.mp4		2024-08-24_12-04-22-front.mp4
+2024-08-24_12-02-21-left_repeater.mp4	2024-08-24_12-04-22-left_repeater.mp4
+2024-08-24_12-02-21-right_repeater.mp4	2024-08-24_12-04-22-right_repeater.mp4
+2024-08-24_12-03-21-back.mp4		2024-08-24_12-05-22-back.mp4

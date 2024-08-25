@@ -34,14 +34,15 @@ async function exportVideo(resolution, exportType) {
 
     try {
         // Get the order of cameras as they appear in the GUI
-        const cameraOrder = ['Front', 'Back', 'Left', 'Right'];
+        const cameraOrder = ['front', 'back', 'left_repeater', 'right_repeater'];
         const orderedVideos = [];
         const missingCameras = [];
 
         cameraOrder.forEach(cameraType => {
-            const video = videos.find(v => 
-                v.parentElement.querySelector('.video-label').textContent === cameraType
-            );
+            const video = videos.find(v => {
+                const filename = v.src.split('/').pop();
+                return filename.includes(`-${cameraType}.mp4`);
+            });
             if (video) {
                 orderedVideos.push(video);
             } else {
@@ -50,7 +51,7 @@ async function exportVideo(resolution, exportType) {
             }
         });
 
-        console.log('Found cameras:', orderedVideos.map(v => v.parentElement.querySelector('.video-label').textContent));
+        console.log('Found cameras:', orderedVideos.map(v => v.src.split('/').pop()));
         console.log('Missing cameras:', missingCameras);
 
         if (orderedVideos.length === 0) {
@@ -60,8 +61,8 @@ async function exportVideo(resolution, exportType) {
         // Write input videos to FFmpeg's virtual file system in the correct order
         for (let i = 0; i < orderedVideos.length; i++) {
             const videoName = `input${i}.mp4`;
-            const cameraType = orderedVideos[i].parentElement.querySelector('.video-label').textContent;
-            console.log(`Writing video ${i} (${cameraType}) to FFmpeg FS: ${videoName}`);
+            const filename = orderedVideos[i].src.split('/').pop();
+            console.log(`Writing video ${i} (${filename}) to FFmpeg FS: ${videoName}`);
             await ffmpeg.FS('writeFile', videoName, await fetchFile(orderedVideos[i].src));
         }
 
