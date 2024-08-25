@@ -1,4 +1,6 @@
 let canvas;
+let videoContext;
+let videoSources = {};
 
 function initializeExport() {
     // No need to add event listeners here anymore
@@ -49,6 +51,41 @@ window.showExportModal = function(exportType) {
     });
 }
 
+function initializeVideoContext(width, height) {
+    canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    videoContext = new VideoContext(canvas);
+}
+
+function prepareVideoSources() {
+    videoSources = {};
+    videos.forEach((video, index) => {
+        videoSources[index] = videoContext.video(video);
+    });
+}
+
+function applyStandardLayout() {
+    Object.keys(videoSources).forEach((index, i) => {
+        const source = videoSources[index];
+        if (source && typeof source.startAt === 'function') {
+            const node = source.startAt(0);
+            if (i === 0) { // Assuming index 0 is the front camera
+                node.connect(videoContext.destination);
+            } else {
+                const effect = videoContext.effect(VideoContext.DEFINITIONS.OPACITY);
+                node.connect(effect);
+                effect.connect(videoContext.destination);
+                effect.opacity = 0.5; // Make secondary videos semi-transparent
+            }
+            node.start(0);
+            node.stop(videoContext.duration);
+        } else {
+            console.error('Invalid video source for index:', index);
+        }
+    });
+}
+
 function startExport(resolution, exportType) {
     const [width, height] = resolution.split('x').map(Number);
     initializeVideoContext(width, height);
@@ -58,88 +95,23 @@ function startExport(resolution, exportType) {
     const progressBarInner = progressBar.querySelector('.progress-bar');
     progressBar.classList.remove('d-none');
 
-    let currentTime = 0;
-    const duration = Math.max(...videos.map(v => v.duration));
-
-    let isPlaying = false;
-
     if (exportType === 'standard') {
-        // For standard export, ignore the interaction timeline and use the standard layout
         applyStandardLayout();
     } else {
-        // For custom export, use the interaction timeline
-        interactionTimeline.forEach((interaction, index) => {
-            const nextInteraction = interactionTimeline[index + 1];
-            const endTime = nextInteraction ? nextInteraction.timestamp : duration;
-
-            switch (interaction.type) {
-                case 'switchActive':
-                    applyActiveVideoEffect(interaction.videoIndex, currentTime, endTime);
-                    break;
-                case 'toggleVisibility':
-                    applyVisibilityEffect(interaction.videoIndex, currentTime, endTime);
-                    break;
-                case 'playPause':
-                    isPlaying = !isPlaying;
-                    applyPlayPauseEffect(isPlaying, currentTime, endTime);
-                    break;
-            }
-
-            currentTime = interaction.timestamp;
-        });
+        // Implement custom layout logic here
+        console.log('Custom export not implemented yet');
+        return;
     }
 
-    // Start the render
     videoContext.play();
-    videoContext.startRendering();
-
-    // Update progress bar
-    let lastTime = 0;
-    videoContext.registerTimeUpdateCallback((currentTime) => {
-        const progress = (currentTime / duration) * 100;
+    videoContext.onUpdate(() => {
+        const progress = (videoContext.currentTime / videoContext.duration) * 100;
         progressBarInner.style.width = `${progress}%`;
-        
-        // Capture frames at 30 fps
-        if (currentTime - lastTime >= 1/30) {
-            captureFrame();
-            lastTime = currentTime;
-        }
+        captureFrame();
     });
 
-    // When rendering is finished, encode and save the video
-    videoContext.onComplete = function() {
+    videoContext.onEnded(() => {
         encodeAndSaveVideo(width, height);
-        progressBar.classList.add('d-none');
-    };
-}
-
-function applyStandardLayout() {
-    Object.keys(videoSources).forEach((index) => {
-        const source = videoSources[index];
-        const node = source.startAt(0);
-        if (index === '0') { // Assuming index 0 is the front camera
-            node.connect(videoContext.destination);
-        } else {
-            const effect = videoContext.effect(VideoContext.DEFINITIONS.OPACITY);
-            node.connect(effect);
-            effect.connect(videoContext.destination);
-            effect.opacity = 0.5; // Make secondary videos semi-transparent
-        }
-        node.stop(Math.max(...videos.map(v => v.duration)));
-    });
-}
-
-function initializeVideoContext(width, height) {
-    canvas = document.createElement('canvas');
-    canvas.width = width;
-    canvas.height = height;
-    videoContext = new VideoContext(canvas);
-}
-
-function prepareVideoSources() {
-    videos.forEach((video, index) => {
-        const source = videoContext.video(video.src);
-        videoSources[index] = source;
     });
 }
 
