@@ -1,4 +1,3 @@
-let videoContext;
 let videoSources = {};
 let canvas;
 
@@ -63,6 +62,8 @@ function startExport(resolution) {
     let currentTime = 0;
     const duration = Math.max(...videos.map(v => v.duration));
 
+    let isPlaying = false;
+
     interactionTimeline.forEach((interaction, index) => {
         const nextInteraction = interactionTimeline[index + 1];
         const endTime = nextInteraction ? nextInteraction.timestamp : duration;
@@ -75,7 +76,8 @@ function startExport(resolution) {
                 applyVisibilityEffect(interaction.videoIndex, currentTime, endTime);
                 break;
             case 'playPause':
-                // Handle play/pause if needed
+                isPlaying = !isPlaying;
+                applyPlayPauseEffect(isPlaying, currentTime, endTime);
                 break;
         }
 
@@ -143,6 +145,19 @@ function applyVisibilityEffect(videoIndex, startTime, endTime) {
     } else {
         console.error('Invalid video source for index:', videoIndex);
     }
+}
+
+function applyPlayPauseEffect(isPlaying, startTime, endTime) {
+    Object.values(videoSources).forEach(source => {
+        if (isPlaying) {
+            const node = source.startAt(startTime);
+            node.connect(videoContext.destination);
+            node.stop(endTime);
+        } else {
+            // If paused, we don't connect the source to the destination
+            // This effectively "pauses" the video in the export
+        }
+    });
 }
 
 let frames = [];
