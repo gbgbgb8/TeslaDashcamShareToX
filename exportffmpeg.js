@@ -1,21 +1,16 @@
 const { createFFmpeg, fetchFile } = FFmpeg;
-const ffmpeg = createFFmpeg({ log: true });
+const ffmpeg = createFFmpeg({ log: false });
 
 async function initializeFFmpeg() {
-    console.log('Initializing FFmpeg...');
     try {
         await ffmpeg.load();
-        console.log('FFmpeg initialized');
     } catch (error) {
         console.error('Error initializing FFmpeg:', error);
     }
 }
 
 async function exportVideo(resolution, exportType) {
-    console.log('Starting FFmpeg export...');
     const [width, height] = resolution.split('x').map(Number);
-    console.log(`Resolution: ${width}x${height}, Export Type: ${exportType}`);
-
     const progressWindow = createProgressWindow();
     let isCancelled = false;
 
@@ -32,22 +27,17 @@ async function exportVideo(resolution, exportType) {
             return video ? { video, type: cameraType } : null;
         }).filter(Boolean);
 
-        updateProgressLog(progressWindow, 'Ordered videos: ' + orderedVideos.map(v => `${v.type}: ${v.video.src}`).join(', '));
-
         if (orderedVideos.length === 0) {
             throw new Error('No camera angles found');
         }
 
-        // Write input videos to FFmpeg's virtual file system
         for (let i = 0; i < orderedVideos.length; i++) {
             if (isCancelled) throw new Error('Export cancelled');
             const videoName = `input${i}.mp4`;
-            const { video, type } = orderedVideos[i];
-            updateProgressLog(progressWindow, `Writing video ${i} (${type}) to FFmpeg FS: ${videoName}`);
+            const { video } = orderedVideos[i];
             await ffmpeg.FS('writeFile', videoName, await fetchFile(video.src));
         }
 
-        // Construct the FFmpeg command
         let command = orderedVideos.map((_, i) => ['-i', `input${i}.mp4`]).flat();
 
         if (exportType === 'standard') {
@@ -56,7 +46,6 @@ async function exportVideo(resolution, exportType) {
                 filterComplex.push(`[${i}:v]scale=${i === 0 ? width : width/4}:${i === 0 ? height : height/4}[v${i}];`);
             });
 
-            // Overlay videos in the correct positions
             filterComplex.push(`[v0][v1]overlay=main_w-overlay_w:0[temp1];`);
             filterComplex.push(`[temp1][v2]overlay=0:main_h-overlay_h[temp2];`);
             filterComplex.push(`[temp2][v3]overlay=main_w-overlay_w:main_h-overlay_h[v]`);
@@ -78,43 +67,23 @@ async function exportVideo(resolution, exportType) {
             'output.mp4'
         ]);
 
-        updateProgressLog(progressWindow, 'Running FFmpeg command: ' + command.join(' '));
-        // Run the FFmpeg command
-        ffmpeg.setProgress(({ ratio, time, fps, speed }) => {
+        ffmpeg.setProgress(({ ratio }) => {
             if (isCancelled) {
                 ffmpeg.exit();
                 throw new Error('Export cancelled by user');
             }
-            updateProgress(progressWindow, ratio * 100, fps, speed);
-        });
-
-        // Capture FFmpeg output
-        ffmpeg.setLogger(({ type, message }) => {
-            if (isCancelled) return;
-            if (type === 'fferr') {
-                const fpsMatch = message.match(/fps=\s*(\d+)/);
-                const speedMatch = message.match(/speed=\s*([\d.]+)x/);
-                if (fpsMatch && speedMatch) {
-                    const fps = parseFloat(fpsMatch[1]);
-                    const speed = parseFloat(speedMatch[1]);
-                    updateProgress(progressWindow, null, fps, speed);
-                }
-            }
-            updateProgressLog(progressWindow, `[${type}] ${message}`);
+            updateProgress(progressWindow, ratio * 100);
         });
 
         await ffmpeg.run(...command);
 
         if (isCancelled) throw new Error('Export cancelled by user');
 
-        updateProgressLog(progressWindow, 'Reading output file from FFmpeg FS');
         const data = ffmpeg.FS('readFile', 'output.mp4');
-
         updateProgressLog(progressWindow, 'Export completed successfully');
         showDownloadButton(progressWindow, data);
 
     } catch (error) {
-        console.error('Error during FFmpeg export:', error);
         updateProgressLog(progressWindow, 'Error: ' + error.message);
     } finally {
         showCloseButton(progressWindow);
@@ -210,7 +179,6 @@ function showCloseButton(progressWindow) {
 }
 
 window.showExportModal = function(exportType) {
-    console.log('Showing export modal for type:', exportType);
     const modal = document.createElement('div');
     modal.className = 'modal fade';
     modal.id = 'exportModal';
@@ -246,7 +214,6 @@ window.showExportModal = function(exportType) {
 
     document.getElementById('startExportButton').addEventListener('click', () => {
         const resolution = document.getElementById('resolutionSelect').value;
-        console.log('Starting export with resolution:', resolution);
         exportModal.hide();
         exportVideo(resolution, exportType);
     });
