@@ -82,7 +82,6 @@ body {
     border-radius: 3px;
     font-size: 0.8em;
     z-index: 3;
-    display: none; /* Hide labels by default */
 }
 
 .video-controls {
@@ -92,7 +91,6 @@ body {
     display: flex;
     gap: 5px;
     z-index: 3;
-    display: none; /* Hide controls by default */
 }
 
 .video-controls button {
@@ -173,4 +171,60 @@ body {
 
 #interactionLog p {
     margin-bottom: 2px;
+}
+
+.progress-window {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 80%;
+    max-width: 500px;
+    background-color: #fff;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.3);
+    z-index: 1000;
+}
+
+.progress-window h3 {
+    margin-top: 0;
+}
+
+.progress-window .progress-bar {
+    width: 100%;
+    height: 20px;
+    background-color: #f0f0f0;
+    border-radius: 10px;
+    overflow: hidden;
+    margin-bottom: 10px;
+}
+
+.progress-window .progress {
+    width: 0;
+    height: 100%;
+    background-color: #4CAF50;
+    transition: width 0.3s ease;
+}
+
+.progress-window .progress-log {
+    max-height: 200px;
+    overflow-y: auto;
+    border: 1px solid #ccc;
+    padding: 10px;
+    margin-bottom: 10px;
+}
+
+.progress-window button {
+    width: 100%;
+    padding: 10px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.progress-window button:hover {
+    background-color: #45a049;
 }

@@ -11,26 +11,13 @@ async function initializeFFmpeg() {
     }
 }
 
-async function checkHeaders() {
-    try {
-        const response = await fetch(window.location.href);
-        console.log('Response Headers:');
-        for (let [key, value] of response.headers.entries()) {
-            console.log(`${key}: ${value}`);
-        }
-    } catch (error) {
-        console.error('Error fetching headers:', error);
-    }
-}
-
 async function exportVideo(resolution, exportType) {
     console.log('Starting FFmpeg export...');
     const [width, height] = resolution.split('x').map(Number);
     console.log(`Resolution: ${width}x${height}, Export Type: ${exportType}`);
 
-    const progressBar = document.querySelector('.progress');
-    const progressBarInner = progressBar.querySelector('.progress-bar');
-    progressBar.classList.remove('d-none');
+    const progressWindow = createProgressWindow();
+    let isCancelled = false;
 
     try {
         const cameraOrder = ['front', 'back', 'left_repeater', 'right_repeater'];
@@ -45,7 +32,7 @@ async function exportVideo(resolution, exportType) {
             return video ? { video, type: cameraType } : null;
         }).filter(Boolean);
 
-        console.log('Ordered videos:', orderedVideos.map(v => `${v.type}: ${v.video.src}`));
+        updateProgressLog(progressWindow, 'Ordered videos: ' + orderedVideos.map(v => `${v.type}: ${v.video.src}`).join(', '));
 
         if (orderedVideos.length === 0) {
             throw new Error('No camera angles found');
@@ -53,9 +40,10 @@ async function exportVideo(resolution, exportType) {
 
         // Write input videos to FFmpeg's virtual file system
         for (let i = 0; i < orderedVideos.length; i++) {
+            if (isCancelled) throw new Error('Export cancelled');
             const videoName = `input${i}.mp4`;
             const { video, type } = orderedVideos[i];
-            console.log(`Writing video ${i} (${type}) to FFmpeg FS: ${videoName}`);
+            updateProgressLog(progressWindow, `Writing video ${i} (${type}) to FFmpeg FS: ${videoName}`);
             await ffmpeg.FS('writeFile', videoName, await fetchFile(video.src));
         }
 
@@ -78,7 +66,7 @@ async function exportVideo(resolution, exportType) {
                 '-map', '[v]',
             ]);
         } else {
-            console.log('Custom export not implemented yet');
+            updateProgressLog(progressWindow, 'Custom export not implemented yet');
             return;
         }
 
@@ -90,16 +78,61 @@ async function exportVideo(resolution, exportType) {
             'output.mp4'
         ]);
 
-        console.log('Running FFmpeg command:', command.join(' '));
+        updateProgressLog(progressWindow, 'Running FFmpeg command: ' + command.join(' '));
         // Run the FFmpeg command
+        ffmpeg.setProgress(({ ratio }) => {
+            if (isCancelled) ffmpeg.exit();
+            updateProgress(progressWindow, ratio * 100);
+        });
         await ffmpeg.run(...command);
 
-        // Read the result
-        console.log('Reading output file from FFmpeg FS');
+        updateProgressLog(progressWindow, 'Reading output file from FFmpeg FS');
         const data = ffmpeg.FS('readFile', 'output.mp4');
 
-        // Create a download link
-        console.log('Creating download link for output file');
+        updateProgressLog(progressWindow, 'Export completed successfully');
+        showDownloadButton(progressWindow, data);
+
+    } catch (error) {
+        console.error('Error during FFmpeg export:', error);
+        updateProgressLog(progressWindow, 'Error: ' + error.message);
+    }
+}
+
+function createProgressWindow() {
+    const progressWindow = document.createElement('div');
+    progressWindow.className = 'progress-window';
+    progressWindow.innerHTML = `
+        <h3>Export Progress</h3>
+        <div class="progress-bar"><div class="progress"></div></div>
+        <div class="progress-log"></div>
+        <button class="cancel-button">Cancel</button>
+    `;
+    document.body.appendChild(progressWindow);
+
+    const cancelButton = progressWindow.querySelector('.cancel-button');
+    cancelButton.addEventListener('click', () => {
+        isCancelled = true;
+        updateProgressLog(progressWindow, 'Export cancelled by user');
+    });
+
+    return progressWindow;
+}
+
+function updateProgress(progressWindow, percent) {
+    const progressBar = progressWindow.querySelector('.progress');
+    progressBar.style.width = `${percent}%`;
+}
+
+function updateProgressLog(progressWindow, message) {
+    const log = progressWindow.querySelector('.progress-log');
+    log.innerHTML += `<p>${message}</p>`;
+    log.scrollTop = log.scrollHeight;
+}
+
+function showDownloadButton(progressWindow, data) {
+    const cancelButton = progressWindow.querySelector('.cancel-button');
+    cancelButton.textContent = 'Download';
+    cancelButton.onclick = () => {
         const blob = new Blob([data.buffer], { type: 'video/mp4' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -108,21 +141,13 @@ async function exportVideo(resolution, exportType) {
         a.download = 'exported_video.mp4';
         document.body.appendChild(a);
         a.click();
-        
-        // Clean up
         setTimeout(() => {
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
         }, 100);
-
-    } catch (error) {
-        console.error('Error during FFmpeg export:', error);
-    } finally {
-        progressBar.classList.add('d-none');
-    }
+    };
 }
 
-// Update showExportModal function to use FFmpeg export
 window.showExportModal = function(exportType) {
     console.log('Showing export modal for type:', exportType);
     const modal = document.createElement('div');
@@ -145,9 +170,6 @@ window.showExportModal = function(exportType) {
                             <option value="720x720">720x720 (Square)</option>
                         </select>
                     </div>
-                    <div class="progress d-none">
-                        <div class="progress-bar" role="progressbar" style="width: 0%"></div>
-                    </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
@@ -169,9 +191,4 @@ window.showExportModal = function(exportType) {
     });
 }
 
-// Initialize FFmpeg and check headers when the page loads
-document.addEventListener('DOMContentLoaded', () => {
-    console.log('Document loaded, initializing FFmpeg and checking headers');
-    initializeFFmpeg();
-    checkHeaders();
-});
+document.addEventListener('DOMContentLoaded', initializeFFmpeg);
