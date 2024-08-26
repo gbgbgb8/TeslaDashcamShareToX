@@ -33,14 +33,19 @@ async function exportVideo(resolution, exportType) {
     progressBar.classList.remove('d-none');
 
     try {
-        const cameraOrder = ['front', 'back', 'left', 'right'];
-        const orderedVideos = cameraOrder.map(cameraType => 
-            videos.find(video => 
-                video.parentElement.querySelector('.video-label').textContent.toLowerCase() === cameraType.replace('_repeater', '')
-            )
-        ).filter(Boolean);
+        const cameraOrder = ['front', 'back', 'left_repeater', 'right_repeater'];
+        const orderedVideos = cameraOrder.map(cameraType => {
+            const video = videos.find(v => {
+                const label = v.parentElement.querySelector('.video-label').textContent.toLowerCase();
+                return label === cameraType || 
+                       (cameraType === 'back' && label === 'rear') ||
+                       (cameraType === 'left_repeater' && label === 'left') ||
+                       (cameraType === 'right_repeater' && label === 'right');
+            });
+            return video ? { video, type: cameraType } : null;
+        }).filter(Boolean);
 
-        console.log('Ordered videos:', orderedVideos.map(v => v.parentElement.querySelector('.video-label').textContent));
+        console.log('Ordered videos:', orderedVideos.map(v => `${v.type}: ${v.video.src}`));
 
         if (orderedVideos.length === 0) {
             throw new Error('No camera angles found');
@@ -49,9 +54,9 @@ async function exportVideo(resolution, exportType) {
         // Write input videos to FFmpeg's virtual file system
         for (let i = 0; i < orderedVideos.length; i++) {
             const videoName = `input${i}.mp4`;
-            const cameraType = orderedVideos[i].parentElement.querySelector('.video-label').textContent;
-            console.log(`Writing video ${i} (${cameraType}) to FFmpeg FS: ${videoName}`);
-            await ffmpeg.FS('writeFile', videoName, await fetchFile(orderedVideos[i].src));
+            const { video, type } = orderedVideos[i];
+            console.log(`Writing video ${i} (${type}) to FFmpeg FS: ${videoName}`);
+            await ffmpeg.FS('writeFile', videoName, await fetchFile(video.src));
         }
 
         // Construct the FFmpeg command
@@ -63,21 +68,10 @@ async function exportVideo(resolution, exportType) {
                 filterComplex.push(`[${i}:v]scale=${i === 0 ? width : width/4}:${i === 0 ? height : height/4}[v${i}];`);
             });
 
-            if (orderedVideos.length > 1) {
-                filterComplex.push(`[v0][v1]overlay=main_w-overlay_w:0[temp1];`);
-                if (orderedVideos.length > 2) {
-                    filterComplex.push(`[temp1][v2]overlay=0:main_h-overlay_h[temp2];`);
-                    if (orderedVideos.length > 3) {
-                        filterComplex.push(`[temp2][v3]overlay=main_w-overlay_w:main_h-overlay_h[v]`);
-                    } else {
-                        filterComplex.push(`[temp2]null[v]`);
-                    }
-                } else {
-                    filterComplex.push(`[temp1]null[v]`);
-                }
-            } else {
-                filterComplex.push(`[v0]null[v]`);
-            }
+            // Overlay videos in the correct positions
+            filterComplex.push(`[v0][v1]overlay=main_w-overlay_w:0[temp1];`);
+            filterComplex.push(`[temp1][v2]overlay=0:main_h-overlay_h[temp2];`);
+            filterComplex.push(`[temp2][v3]overlay=main_w-overlay_w:main_h-overlay_h[v]`);
 
             command = command.concat([
                 '-filter_complex', filterComplex.join(''),
