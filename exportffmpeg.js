@@ -67,7 +67,7 @@ async function exportVideo(resolution, exportType) {
             'output.mp4'
         ]);
 
-        ffmpeg.setProgress(({ ratio, time }) => {
+        ffmpeg.setProgress(({ ratio }) => {
             if (isCancelled) {
                 ffmpeg.exit();
                 throw new Error('Export cancelled by user');
@@ -132,7 +132,7 @@ function createProgressWindow() {
 function updateProgress(progressWindow, percent) {
     const progressBar = progressWindow.querySelector('.progress-bar');
     progressBar.style.width = `${percent.toFixed(2)}%`;
-    updateProgressLog(progressWindow, `Progress: ${percent.toFixed(2)}%`);
+    // Removed the updateProgressLog call here
 }
 
 function updateProgressStats(progressWindow, fps, speed) {
@@ -142,7 +142,7 @@ function updateProgressStats(progressWindow, fps, speed) {
     fpsElement.textContent = `${fps.toFixed(2)} FPS`;
     speedElement.textContent = `${speed.toFixed(2)}x`;
     
-    updateProgressLog(progressWindow, `FPS: ${fps.toFixed(2)}, Speed: ${speed.toFixed(2)}x`);
+    // Removed the updateProgressLog call here
 }
 
 function updateProgressLog(progressWindow, message) {
