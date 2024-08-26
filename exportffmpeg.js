@@ -81,12 +81,16 @@ async function exportVideo(resolution, exportType) {
         updateProgressLog(progressWindow, 'Running FFmpeg command: ' + command.join(' '));
         // Run the FFmpeg command
         ffmpeg.setProgress(({ ratio, time, fps, speed }) => {
-            if (isCancelled) ffmpeg.exit();
+            if (isCancelled) {
+                ffmpeg.exit();
+                throw new Error('Export cancelled by user');
+            }
             updateProgress(progressWindow, ratio * 100, fps, speed);
         });
 
         // Capture FFmpeg output
         ffmpeg.setLogger(({ type, message }) => {
+            if (isCancelled) return;
             if (type === 'fferr') {
                 const fpsMatch = message.match(/fps=\s*(\d+)/);
                 const speedMatch = message.match(/speed=\s*([\d.]+)x/);
@@ -101,6 +105,8 @@ async function exportVideo(resolution, exportType) {
 
         await ffmpeg.run(...command);
 
+        if (isCancelled) throw new Error('Export cancelled by user');
+
         updateProgressLog(progressWindow, 'Reading output file from FFmpeg FS');
         const data = ffmpeg.FS('readFile', 'output.mp4');
 
@@ -110,6 +116,8 @@ async function exportVideo(resolution, exportType) {
     } catch (error) {
         console.error('Error during FFmpeg export:', error);
         updateProgressLog(progressWindow, 'Error: ' + error.message);
+    } finally {
+        showCloseButton(progressWindow);
     }
 }
 
@@ -134,6 +142,7 @@ function createProgressWindow() {
     cancelButton.addEventListener('click', () => {
         isCancelled = true;
         updateProgressLog(progressWindow, 'Export cancelled by user');
+        showCloseButton(progressWindow);
     });
 
     return progressWindow;
@@ -189,6 +198,14 @@ function showDownloadButton(progressWindow, data) {
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
         }, 100);
+    };
+}
+
+function showCloseButton(progressWindow) {
+    const cancelButton = progressWindow.querySelector('.cancel-button');
+    cancelButton.textContent = 'Close';
+    cancelButton.onclick = () => {
+        document.body.removeChild(progressWindow);
     };
 }
 
