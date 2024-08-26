@@ -97,7 +97,6 @@ async function exportVideo(resolution, exportType) {
 
     } catch (error) {
         updateProgressLog(progressWindow, 'Error: ' + error.message);
-    } finally {
         showCloseButton(progressWindow);
     }
 }
@@ -169,6 +168,9 @@ function showDownloadButton(progressWindow, data) {
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
         }, 100);
+        
+        // Change the button to 'Close' after download starts
+        showCloseButton(progressWindow);
     };
 }
 
