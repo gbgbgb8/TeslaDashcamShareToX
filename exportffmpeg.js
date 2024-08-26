@@ -159,18 +159,18 @@ function showDownloadButton(progressWindow, data) {
         const blob = new Blob([data.buffer], { type: 'video/mp4' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
-        a.style.display = 'none';
         a.href = url;
         a.download = 'exported_video.mp4';
         document.body.appendChild(a);
         a.click();
-        setTimeout(() => {
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-        }, 100);
-        
+        document.body.removeChild(a);
+
         // Change the button to 'Close' after download starts
-        showCloseButton(progressWindow);
+        cancelButton.textContent = 'Close';
+        cancelButton.onclick = () => {
+            document.body.removeChild(progressWindow);
+            URL.revokeObjectURL(url);
+        };
     };
 }
 
