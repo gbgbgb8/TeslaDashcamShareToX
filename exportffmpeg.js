@@ -84,6 +84,21 @@ async function exportVideo(resolution, exportType) {
             if (isCancelled) ffmpeg.exit();
             updateProgress(progressWindow, ratio * 100, fps, speed);
         });
+
+        // Capture FFmpeg output
+        ffmpeg.setLogger(({ type, message }) => {
+            if (type === 'fferr') {
+                const fpsMatch = message.match(/fps=\s*(\d+)/);
+                const speedMatch = message.match(/speed=\s*([\d.]+)x/);
+                if (fpsMatch && speedMatch) {
+                    const fps = parseFloat(fpsMatch[1]);
+                    const speed = parseFloat(speedMatch[1]);
+                    updateProgress(progressWindow, null, fps, speed);
+                }
+            }
+            updateProgressLog(progressWindow, `[${type}] ${message}`);
+        });
+
         await ffmpeg.run(...command);
 
         updateProgressLog(progressWindow, 'Reading output file from FFmpeg FS');
@@ -137,10 +152,17 @@ function updateProgress(progressWindow, percent, fps, speed) {
         progressBar.classList.add('indeterminate');
     }
     
-    fpsElement.textContent = `${fps ? fps.toFixed(2) : '0.00'} FPS`;
-    speedElement.textContent = `${speed ? speed.toFixed(2) : '0.00'}x`;
+    if (fps !== undefined && fps !== null) {
+        fpsElement.textContent = `${fps.toFixed(2)} FPS`;
+    }
     
-    updateProgressLog(progressWindow, `Progress: ${percent ? percent.toFixed(2) : 'N/A'}%, FPS: ${fps ? fps.toFixed(2) : '0.00'}, Speed: ${speed ? speed.toFixed(2) : '0.00'}x`);
+    if (speed !== undefined && speed !== null) {
+        speedElement.textContent = `${speed.toFixed(2)}x`;
+    }
+    
+    if (percent !== undefined && percent !== null) {
+        updateProgressLog(progressWindow, `Progress: ${percent.toFixed(2)}%, FPS: ${fps ? fps.toFixed(2) : 'N/A'}, Speed: ${speed ? speed.toFixed(2) : 'N/A'}x`);
+    }
 }
 
 function updateProgressLog(progressWindow, message) {
