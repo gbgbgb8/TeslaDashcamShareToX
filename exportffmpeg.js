@@ -156,21 +156,32 @@ function showDownloadButton(progressWindow, data) {
     const cancelButton = progressWindow.querySelector('.cancel-button');
     cancelButton.textContent = 'Download';
     cancelButton.onclick = () => {
+        // Create blob and URL
         const blob = new Blob([data.buffer], { type: 'video/mp4' });
         const url = URL.createObjectURL(blob);
+
+        // Create invisible download link
         const a = document.createElement('a');
+        a.style.display = 'none';
         a.href = url;
         a.download = 'exported_video.mp4';
         document.body.appendChild(a);
+
+        // Trigger download
         a.click();
+
+        // Clean up
         document.body.removeChild(a);
 
-        // Change the button to 'Close' after download starts
+        // Update button text and function
         cancelButton.textContent = 'Close';
         cancelButton.onclick = () => {
             document.body.removeChild(progressWindow);
             URL.revokeObjectURL(url);
         };
+
+        // Log download start
+        updateProgressLog(progressWindow, 'Download started. Click "Close" when finished.');
     };
 }
 
