@@ -129,14 +129,18 @@ function updateProgress(progressWindow, percent, fps, speed) {
     const fpsElement = progressWindow.querySelector('.fps');
     const speedElement = progressWindow.querySelector('.speed');
     
-    progressBar.style.width = `${percent}%`;
+    progressBar.style.width = `${percent.toFixed(2)}%`;
     fpsElement.textContent = `${fps.toFixed(2)} FPS`;
     speedElement.textContent = `${speed.toFixed(2)}x`;
+    
+    console.log(`Progress: ${percent.toFixed(2)}%, FPS: ${fps.toFixed(2)}, Speed: ${speed.toFixed(2)}x`);
 }
 
 function updateProgressLog(progressWindow, message) {
     const log = progressWindow.querySelector('.progress-log');
-    log.innerHTML += `<p>${message}</p>`;
+    const logEntry = document.createElement('p');
+    logEntry.textContent = message;
+    log.appendChild(logEntry);
     log.scrollTop = log.scrollHeight;
 }
 
