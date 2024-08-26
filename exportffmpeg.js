@@ -80,9 +80,9 @@ async function exportVideo(resolution, exportType) {
 
         updateProgressLog(progressWindow, 'Running FFmpeg command: ' + command.join(' '));
         // Run the FFmpeg command
-        ffmpeg.setProgress(({ ratio }) => {
+        ffmpeg.setProgress(({ ratio, time, fps, speed }) => {
             if (isCancelled) ffmpeg.exit();
-            updateProgress(progressWindow, ratio * 100);
+            updateProgress(progressWindow, ratio * 100, fps, speed);
         });
         await ffmpeg.run(...command);
 
@@ -103,7 +103,13 @@ function createProgressWindow() {
     progressWindow.className = 'progress-window';
     progressWindow.innerHTML = `
         <h3>Export Progress</h3>
-        <div class="progress-bar"><div class="progress"></div></div>
+        <div class="progress-stats">
+            <span class="fps">0 FPS</span>
+            <span class="speed">0x</span>
+        </div>
+        <div class="progress-bar-container">
+            <div class="progress-bar"></div>
+        </div>
         <div class="progress-log"></div>
         <button class="cancel-button">Cancel</button>
     `;
@@ -118,9 +124,14 @@ function createProgressWindow() {
     return progressWindow;
 }
 
-function updateProgress(progressWindow, percent) {
-    const progressBar = progressWindow.querySelector('.progress');
+function updateProgress(progressWindow, percent, fps, speed) {
+    const progressBar = progressWindow.querySelector('.progress-bar');
+    const fpsElement = progressWindow.querySelector('.fps');
+    const speedElement = progressWindow.querySelector('.speed');
+    
     progressBar.style.width = `${percent}%`;
+    fpsElement.textContent = `${fps.toFixed(2)} FPS`;
+    speedElement.textContent = `${speed.toFixed(2)}x`;
 }
 
 function updateProgressLog(progressWindow, message) {
