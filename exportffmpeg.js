@@ -33,7 +33,7 @@ async function exportVideo(resolution, exportType) {
     progressBar.classList.remove('d-none');
 
     try {
-        const cameraOrder = ['front', 'back', 'left_repeater', 'right_repeater'];
+        const cameraOrder = ['front', 'back', 'left', 'right'];
         const orderedVideos = cameraOrder.map(cameraType => 
             videos.find(video => 
                 video.parentElement.querySelector('.video-label').textContent.toLowerCase() === cameraType.replace('_repeater', '')
@@ -58,18 +58,29 @@ async function exportVideo(resolution, exportType) {
         let command = orderedVideos.map((_, i) => ['-i', `input${i}.mp4`]).flat();
 
         if (exportType === 'standard') {
-            const filterComplex = [
-                `[0:v]scale=${width}:${height}[front];`,
-                `[1:v]scale=${width/4}:${height/4}[back];`,
-                `[2:v]scale=${width/4}:${height/4}[left];`,
-                `[3:v]scale=${width/4}:${height/4}[right];`,
-                `[front][back]overlay=main_w-overlay_w:0[temp1];`,
-                `[temp1][left]overlay=0:main_h-overlay_h[temp2];`,
-                `[temp2][right]overlay=main_w-overlay_w:main_h-overlay_h[v]`
-            ].join('');
+            let filterComplex = [];
+            orderedVideos.forEach((_, i) => {
+                filterComplex.push(`[${i}:v]scale=${i === 0 ? width : width/4}:${i === 0 ? height : height/4}[v${i}];`);
+            });
+
+            if (orderedVideos.length > 1) {
+                filterComplex.push(`[v0][v1]overlay=main_w-overlay_w:0[temp1];`);
+                if (orderedVideos.length > 2) {
+                    filterComplex.push(`[temp1][v2]overlay=0:main_h-overlay_h[temp2];`);
+                    if (orderedVideos.length > 3) {
+                        filterComplex.push(`[temp2][v3]overlay=main_w-overlay_w:main_h-overlay_h[v]`);
+                    } else {
+                        filterComplex.push(`[temp2]null[v]`);
+                    }
+                } else {
+                    filterComplex.push(`[temp1]null[v]`);
+                }
+            } else {
+                filterComplex.push(`[v0]null[v]`);
+            }
 
             command = command.concat([
-                '-filter_complex', filterComplex,
+                '-filter_complex', filterComplex.join(''),
                 '-map', '[v]',
             ]);
         } else {
