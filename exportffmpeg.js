@@ -81,7 +81,6 @@ async function exportVideo(resolution, exportType) {
         updateProgressLog(progressWindow, 'Running FFmpeg command: ' + command.join(' '));
         // Run the FFmpeg command
         ffmpeg.setProgress(({ ratio, time, fps, speed }) => {
-            console.log('FFmpeg progress:', { ratio, time, fps, speed });
             if (isCancelled) ffmpeg.exit();
             updateProgress(progressWindow, ratio * 100, fps, speed);
         });
@@ -130,11 +129,18 @@ function updateProgress(progressWindow, percent, fps, speed) {
     const fpsElement = progressWindow.querySelector('.fps');
     const speedElement = progressWindow.querySelector('.speed');
     
-    progressBar.style.width = `${percent.toFixed(2)}%`;
+    if (percent !== undefined && percent !== null) {
+        progressBar.style.width = `${percent.toFixed(2)}%`;
+        progressBar.classList.remove('indeterminate');
+    } else {
+        progressBar.style.width = '100%';
+        progressBar.classList.add('indeterminate');
+    }
+    
     fpsElement.textContent = `${fps ? fps.toFixed(2) : '0.00'} FPS`;
     speedElement.textContent = `${speed ? speed.toFixed(2) : '0.00'}x`;
     
-    console.log(`Progress: ${percent.toFixed(2)}%, FPS: ${fps ? fps.toFixed(2) : '0.00'}, Speed: ${speed ? speed.toFixed(2) : '0.00'}x`);
+    updateProgressLog(progressWindow, `Progress: ${percent ? percent.toFixed(2) : 'N/A'}%, FPS: ${fps ? fps.toFixed(2) : '0.00'}, Speed: ${speed ? speed.toFixed(2) : '0.00'}x`);
 }
 
 function updateProgressLog(progressWindow, message) {
