@@ -67,12 +67,24 @@ async function exportVideo(resolution, exportType) {
             'output.mp4'
         ]);
 
-        ffmpeg.setProgress(({ ratio }) => {
+        ffmpeg.setProgress(({ ratio, time }) => {
             if (isCancelled) {
                 ffmpeg.exit();
                 throw new Error('Export cancelled by user');
             }
             updateProgress(progressWindow, ratio * 100);
+        });
+
+        ffmpeg.setLogger(({ type, message }) => {
+            if (type === 'fferr') {
+                const fpsMatch = message.match(/fps=\s*(\d+)/);
+                const speedMatch = message.match(/speed=\s*([\d.]+)x/);
+                if (fpsMatch && speedMatch) {
+                    const fps = parseFloat(fpsMatch[1]);
+                    const speed = parseFloat(speedMatch[1]);
+                    updateProgressStats(progressWindow, fps, speed);
+                }
+            }
         });
 
         await ffmpeg.run(...command);
@@ -117,30 +129,20 @@ function createProgressWindow() {
     return progressWindow;
 }
 
-function updateProgress(progressWindow, percent, fps, speed) {
+function updateProgress(progressWindow, percent) {
     const progressBar = progressWindow.querySelector('.progress-bar');
+    progressBar.style.width = `${percent.toFixed(2)}%`;
+    updateProgressLog(progressWindow, `Progress: ${percent.toFixed(2)}%`);
+}
+
+function updateProgressStats(progressWindow, fps, speed) {
     const fpsElement = progressWindow.querySelector('.fps');
     const speedElement = progressWindow.querySelector('.speed');
     
-    if (percent !== undefined && percent !== null) {
-        progressBar.style.width = `${percent.toFixed(2)}%`;
-        progressBar.classList.remove('indeterminate');
-    } else {
-        progressBar.style.width = '100%';
-        progressBar.classList.add('indeterminate');
-    }
+    fpsElement.textContent = `${fps.toFixed(2)} FPS`;
+    speedElement.textContent = `${speed.toFixed(2)}x`;
     
-    if (fps !== undefined && fps !== null) {
-        fpsElement.textContent = `${fps.toFixed(2)} FPS`;
-    }
-    
-    if (speed !== undefined && speed !== null) {
-        speedElement.textContent = `${speed.toFixed(2)}x`;
-    }
-    
-    if (percent !== undefined && percent !== null) {
-        updateProgressLog(progressWindow, `Progress: ${percent.toFixed(2)}%, FPS: ${fps ? fps.toFixed(2) : 'N/A'}, Speed: ${speed ? speed.toFixed(2) : 'N/A'}x`);
-    }
+    updateProgressLog(progressWindow, `FPS: ${fps.toFixed(2)}, Speed: ${speed.toFixed(2)}x`);
 }
 
 function updateProgressLog(progressWindow, message) {
