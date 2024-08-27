@@ -38,34 +38,14 @@ async function exportVideo(resolution, exportType) {
             await ffmpeg.FS('writeFile', videoName, await fetchFile(video.src));
         }
 
-        let command = orderedVideos.map((_, i) => ['-i', `input${i}.mp4`]).flat();
-
+        let command;
         if (exportType === 'standard') {
-            let filterComplex = [];
-            orderedVideos.forEach((_, i) => {
-                filterComplex.push(`[${i}:v]scale=${i === 0 ? width : width/4}:${i === 0 ? height : height/4}[v${i}];`);
-            });
-
-            filterComplex.push(`[v0][v1]overlay=main_w-overlay_w:0[temp1];`);
-            filterComplex.push(`[temp1][v2]overlay=0:main_h-overlay_h[temp2];`);
-            filterComplex.push(`[temp2][v3]overlay=main_w-overlay_w:main_h-overlay_h[v]`);
-
-            command = command.concat([
-                '-filter_complex', filterComplex.join(''),
-                '-map', '[v]',
-            ]);
+            command = generateStandardExportCommand(orderedVideos, width, height);
+        } else if (exportType === 'custom') {
+            command = generateCustomExportCommand(orderedVideos, width, height);
         } else {
-            updateProgressLog(progressWindow, 'Custom export not implemented yet');
-            return;
+            throw new Error('Invalid export type');
         }
-
-        command = command.concat([
-            '-c:v', 'libx264',
-            '-crf', '23',
-            '-preset', 'medium',
-            '-s', `${width}x${height}`,
-            'output.mp4'
-        ]);
 
         ffmpeg.setProgress(({ ratio }) => {
             if (isCancelled) {
@@ -103,6 +83,102 @@ async function exportVideo(resolution, exportType) {
     }
 }
 
+function generateStandardExportCommand(orderedVideos, width, height) {
+    let command = orderedVideos.map((_, i) => ['-i', `input${i}.mp4`]).flat();
+    let filterComplex = [];
+    
+    orderedVideos.forEach((_, i) => {
+        filterComplex.push(`[${i}:v]scale=${i === 0 ? width : width/4}:${i === 0 ? height : height/4}[v${i}];`);
+    });
+
+    filterComplex.push(`[v0][v1]overlay=main_w-overlay_w:0[temp1];`);
+    filterComplex.push(`[temp1][v2]overlay=0:main_h-overlay_h[temp2];`);
+    filterComplex.push(`[temp2][v3]overlay=main_w-overlay_w:main_h-overlay_h[v]`);
+
+    command = command.concat([
+        '-filter_complex', filterComplex.join(''),
+        '-map', '[v]',
+        '-c:v', 'libx264',
+        '-crf', '23',
+        '-preset', 'medium',
+        '-s', `${width}x${height}`,
+        'output.mp4'
+    ]);
+
+    return command;
+}
+
+function generateCustomExportCommand(orderedVideos, width, height) {
+    let command = orderedVideos.map((_, i) => ['-i', `input${i}.mp4`]).flat();
+    let filterComplex = [];
+    let currentTime = 0;
+    let activeVideo = 0;
+    let visibleVideos = new Set([0, 1, 2, 3]); // Initially, all videos are visible
+
+    // Sort interactions by timestamp in ascending order
+    const sortedInteractions = interactionTimeline.sort((a, b) => a.timestamp - b.timestamp);
+
+    sortedInteractions.forEach((interaction, index) => {
+        const nextInteraction = sortedInteractions[index + 1];
+        const duration = nextInteraction ? nextInteraction.timestamp - interaction.timestamp : videos[0].duration - interaction.timestamp;
+
+        switch (interaction.type) {
+            case 'switchActive':
+                activeVideo = interaction.videoIndex;
+                break;
+            case 'toggleVisibility':
+                if (interaction.additionalData.isHidden) {
+                    visibleVideos.delete(interaction.videoIndex);
+                } else {
+                    visibleVideos.add(interaction.videoIndex);
+                }
+                break;
+            case 'seek':
+                currentTime = interaction.timestamp;
+                break;
+        }
+
+        if (duration > 0) {
+            let visibleVideoFilters = Array.from(visibleVideos).map(vIndex => {
+                return `[${vIndex}:v]trim=${currentTime}:${currentTime + duration},setpts=PTS-STARTPTS[v${vIndex}_${index}];`;
+            }).join('');
+
+            filterComplex.push(visibleVideoFilters);
+
+            if (visibleVideos.size > 1) {
+                let overlayCommand = Array.from(visibleVideos).reduce((acc, vIndex, i) => {
+                    if (i === 0) return `[v${vIndex}_${index}]`;
+                    if (i === 1) return `${acc}[v${vIndex}_${index}]overlay=${vIndex % 2 === 1 ? 'W/2' : '0'}:${vIndex >= 2 ? 'H/2' : '0'}`;
+                    return `${acc}[temp${i-1}];[temp${i-1}][v${vIndex}_${index}]overlay=${vIndex % 2 === 1 ? 'W/2' : '0'}:${vIndex >= 2 ? 'H/2' : '0'}`;
+                }, '');
+
+                if (visibleVideos.size > 2) overlayCommand += `[temp${visibleVideos.size-1}]`;
+                filterComplex.push(`${overlayCommand}[out${index}];`);
+            } else {
+                filterComplex.push(`[v${Array.from(visibleVideos)[0]}_${index}]crop=iw:ih[out${index}];`);
+            }
+
+            currentTime += duration;
+        }
+    });
+
+    // Concatenate all segments
+    const outLabels = filterComplex.filter(f => f.includes('[out')).map((_, i) => `[out${i}]`).join('');
+    filterComplex.push(`${outLabels}concat=n=${outLabels.split('][').length}:v=1[outv]`);
+
+    command = command.concat([
+        '-filter_complex', filterComplex.join(''),
+        '-map', '[outv]',
+        '-c:v', 'libx264',
+        '-crf', '23',
+        '-preset', 'medium',
+        '-s', `${width}x${height}`,
+        'output.mp4'
+    ]);
+
+    return command;
+}
+
 function createProgressWindow() {
     const progressWindow = document.createElement('div');
     progressWindow.className = 'progress-window';
@@ -136,7 +212,6 @@ function createProgressWindow() {
 function updateProgress(progressWindow, percent) {
     const progressBar = progressWindow.querySelector('.progress-bar');
     progressBar.style.width = `${percent.toFixed(2)}%`;
-    // Removed the updateProgressLog call here
 }
 
 function updateProgressStats(progressWindow, fps, speed) {
@@ -145,8 +220,6 @@ function updateProgressStats(progressWindow, fps, speed) {
     
     fpsElement.textContent = `${fps.toFixed(2)} FPS`;
     speedElement.textContent = `${speed.toFixed(2)}x`;
-    
-    // Removed the updateProgressLog call here
 }
 
 function updateProgressLog(progressWindow, message) {
@@ -156,7 +229,7 @@ function updateProgressLog(progressWindow, message) {
     logEntry.textContent = `[${timestamp}] ${message}`;
     log.appendChild(logEntry);
     log.scrollTop = log.scrollHeight;
-    console.log(`[Export Progress] ${message}`); // Add console logging
+    console.log(`[Export Progress] ${message}`);
 }
 
 function showDownloadButton(progressWindow, data) {
@@ -177,7 +250,6 @@ function showDownloadButton(progressWindow, data) {
 
         // Create invisible download link
         const a = document.createElement('a');
-        a.style.display = 'none';
         a.href = url;
         a.download = 'exported_video.mp4';
         document.body.appendChild(a);
