@@ -127,10 +127,19 @@ function generateCustomExportCommand(orderedVideos, width, height) {
                 activeVideo = interaction.videoIndex;
                 break;
             case 'toggleVisibility':
-                if (interaction.additionalData.isHidden) {
-                    visibleVideos.delete(interaction.videoIndex);
+                if (interaction.additionalData && interaction.additionalData.isHidden !== undefined) {
+                    if (interaction.additionalData.isHidden) {
+                        visibleVideos.delete(interaction.videoIndex);
+                    } else {
+                        visibleVideos.add(interaction.videoIndex);
+                    }
                 } else {
-                    visibleVideos.add(interaction.videoIndex);
+                    // Toggle visibility if isHidden is not provided
+                    if (visibleVideos.has(interaction.videoIndex)) {
+                        visibleVideos.delete(interaction.videoIndex);
+                    } else {
+                        visibleVideos.add(interaction.videoIndex);
+                    }
                 }
                 break;
             case 'seek':
@@ -138,7 +147,7 @@ function generateCustomExportCommand(orderedVideos, width, height) {
                 break;
         }
 
-        if (duration > 0) {
+        if (duration > 0 && visibleVideos.size > 0) {
             let visibleVideoFilters = Array.from(visibleVideos).map(vIndex => {
                 return `[${vIndex}:v]trim=${currentTime}:${currentTime + duration},setpts=PTS-STARTPTS[v${vIndex}_${index}];`;
             }).join('');
@@ -164,17 +173,22 @@ function generateCustomExportCommand(orderedVideos, width, height) {
 
     // Concatenate all segments
     const outLabels = filterComplex.filter(f => f.includes('[out')).map((_, i) => `[out${i}]`).join('');
-    filterComplex.push(`${outLabels}concat=n=${outLabels.split('][').length}:v=1[outv]`);
+    if (outLabels) {
+        filterComplex.push(`${outLabels}concat=n=${outLabels.split('][').length}:v=1[outv]`);
 
-    command = command.concat([
-        '-filter_complex', filterComplex.join(''),
-        '-map', '[outv]',
-        '-c:v', 'libx264',
-        '-crf', '23',
-        '-preset', 'medium',
-        '-s', `${width}x${height}`,
-        'output.mp4'
-    ]);
+        command = command.concat([
+            '-filter_complex', filterComplex.join(''),
+            '-map', '[outv]',
+            '-c:v', 'libx264',
+            '-crf', '23',
+            '-preset', 'medium',
+            '-s', `${width}x${height}`,
+            'output.mp4'
+        ]);
+    } else {
+        // If no segments were created, return an error
+        throw new Error('No visible video segments were created. The export cannot be completed.');
+    }
 
     return command;
 }
