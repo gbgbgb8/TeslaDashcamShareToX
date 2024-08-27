@@ -146,19 +146,25 @@ function updateProgressStats(progressWindow, fps, speed) {
 
 function updateProgressLog(progressWindow, message) {
     const log = progressWindow.querySelector('.progress-log');
+    const timestamp = new Date().toLocaleTimeString();
     const logEntry = document.createElement('p');
-    logEntry.textContent = message;
+    logEntry.textContent = `[${timestamp}] ${message}`;
     log.appendChild(logEntry);
     log.scrollTop = log.scrollHeight;
+    console.log(`[Export Progress] ${message}`); // Add console logging
 }
 
 function showDownloadButton(progressWindow, data) {
     const cancelButton = progressWindow.querySelector('.cancel-button');
     cancelButton.textContent = 'Download';
     cancelButton.onclick = () => {
+        updateProgressLog(progressWindow, 'Download button clicked');
+
         // Create blob and URL
         const blob = new Blob([data.buffer], { type: 'video/mp4' });
         const url = URL.createObjectURL(blob);
+        updateProgressLog(progressWindow, `Blob created: ${blob.size} bytes`);
+        updateProgressLog(progressWindow, `URL created: ${url}`);
 
         // Create invisible download link
         const a = document.createElement('a');
@@ -166,22 +172,30 @@ function showDownloadButton(progressWindow, data) {
         a.href = url;
         a.download = 'exported_video.mp4';
         document.body.appendChild(a);
+        updateProgressLog(progressWindow, 'Download link created');
 
         // Trigger download
-        a.click();
+        try {
+            a.click();
+            updateProgressLog(progressWindow, 'Download link clicked');
+        } catch (error) {
+            updateProgressLog(progressWindow, `Error triggering download: ${error.message}`);
+        }
 
         // Clean up
         document.body.removeChild(a);
+        updateProgressLog(progressWindow, 'Download link removed from document');
 
         // Update button text and function
         cancelButton.textContent = 'Close';
         cancelButton.onclick = () => {
             document.body.removeChild(progressWindow);
             URL.revokeObjectURL(url);
+            updateProgressLog(progressWindow, 'URL revoked and progress window closed');
         };
 
         // Log download start
-        updateProgressLog(progressWindow, 'Download started. Click "Close" when finished.');
+        updateProgressLog(progressWindow, 'Download process completed. Click "Close" when finished.');
     };
 }
 
