@@ -229,6 +229,17 @@ body {
     font-size: 0.9em;
 }
 
+.progress-window .button-container {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 10px;
+}
+
+.progress-window .button-container button {
+    flex: 1;
+    margin: 0 5px;
+}
+
 .progress-window button {
     width: 100%;
     padding: 10px;

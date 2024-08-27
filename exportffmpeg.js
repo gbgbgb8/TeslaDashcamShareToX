@@ -97,7 +97,9 @@ async function exportVideo(resolution, exportType) {
 
     } catch (error) {
         updateProgressLog(progressWindow, 'Error: ' + error.message);
-        showCloseButton(progressWindow);
+        if (error.message !== 'Export cancelled by user') {
+            showCloseButton(progressWindow);
+        }
     }
 }
 
@@ -114,7 +116,10 @@ function createProgressWindow() {
             <div class="progress-bar"></div>
         </div>
         <div class="progress-log"></div>
-        <button class="cancel-button">Cancel</button>
+        <div class="button-container">
+            <button class="cancel-button">Cancel</button>
+            <button class="download-button" style="display: none;">Download</button>
+        </div>
     `;
     document.body.appendChild(progressWindow);
 
@@ -155,9 +160,13 @@ function updateProgressLog(progressWindow, message) {
 }
 
 function showDownloadButton(progressWindow, data) {
+    const downloadButton = progressWindow.querySelector('.download-button');
     const cancelButton = progressWindow.querySelector('.cancel-button');
-    cancelButton.textContent = 'Download';
-    cancelButton.onclick = () => {
+    
+    downloadButton.style.display = 'inline-block';
+    cancelButton.textContent = 'Close';
+    
+    downloadButton.onclick = () => {
         updateProgressLog(progressWindow, 'Download button clicked');
 
         // Create blob and URL
@@ -186,21 +195,22 @@ function showDownloadButton(progressWindow, data) {
         document.body.removeChild(a);
         updateProgressLog(progressWindow, 'Download link removed from document');
 
-        // Update button text and function
-        cancelButton.textContent = 'Close';
-        cancelButton.onclick = () => {
-            document.body.removeChild(progressWindow);
-            URL.revokeObjectURL(url);
-            updateProgressLog(progressWindow, 'URL revoked and progress window closed');
-        };
-
         // Log download start
-        updateProgressLog(progressWindow, 'Download process completed. Click "Close" when finished.');
+        updateProgressLog(progressWindow, 'Download process completed.');
+    };
+
+    cancelButton.onclick = () => {
+        document.body.removeChild(progressWindow);
+        URL.revokeObjectURL(url);
+        updateProgressLog(progressWindow, 'Progress window closed');
     };
 }
 
 function showCloseButton(progressWindow) {
+    const downloadButton = progressWindow.querySelector('.download-button');
     const cancelButton = progressWindow.querySelector('.cancel-button');
+    
+    downloadButton.style.display = 'none';
     cancelButton.textContent = 'Close';
     cancelButton.onclick = () => {
         document.body.removeChild(progressWindow);
