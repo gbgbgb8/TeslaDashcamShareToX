@@ -128,7 +128,9 @@ function updatePlayPauseButton() {
 }
 
 function playAllVideos() {
+    const currentTime = videos[0].currentTime;
     videos.forEach(video => {
+        video.currentTime = currentTime;
         video.play().catch(e => {
             // Silently handle errors
             console.log('Error playing video:', e);
@@ -399,7 +401,7 @@ function toggleVideoVisibility(videoItem) {
 function togglePrimaryVideo(event) {
     const clickedItem = event.currentTarget.closest('.video-item');
     const index = parseInt(clickedItem.dataset.index);
-    const currentTime = videos[0].currentTime; // Assuming all videos are in sync
+    const currentTime = videos[0].currentTime;
 
     recordInteraction('switchActive', index, currentTime);
 
@@ -430,10 +432,10 @@ function togglePrimaryVideo(event) {
 
     updateGridLayout();
     
-    // Pause all videos when switching primary video
-    pauseAllVideos();
-    isPlaying = false;
-    updatePlayPauseButton();
+    // Instead of pausing, ensure all videos are playing if they were playing before
+    if (isPlaying) {
+        playAllVideos();
+    }
 }
 
 function updateGridLayout() {
