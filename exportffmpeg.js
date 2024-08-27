@@ -67,15 +67,28 @@ async function exportVideo(resolution, exportType) {
             }
         });
 
+        console.log('Running FFmpeg command...');
         await ffmpeg.run(...command);
+        console.log('FFmpeg command completed');
 
         if (isCancelled) throw new Error('Export cancelled by user');
 
-        const data = ffmpeg.FS('readFile', 'output.mp4');
+        console.log('Checking for output file...');
+        const files = await ffmpeg.FS('readdir', '/');
+        console.log('Files in FFmpeg filesystem:', files);
+
+        if (!files.includes('output.mp4')) {
+            throw new Error('Output file not found. FFmpeg command may have failed.');
+        }
+
+        const data = await ffmpeg.FS('readFile', 'output.mp4');
+        console.log('Output file read successfully. Size:', data.length);
+
         updateProgressLog(progressWindow, 'Export completed successfully');
         showDownloadButton(progressWindow, data);
 
     } catch (error) {
+        console.error('Error during export:', error);
         updateProgressLog(progressWindow, 'Error: ' + error.message);
         if (error.message !== 'Export cancelled by user') {
             showCloseButton(progressWindow);
@@ -118,9 +131,14 @@ function generateCustomExportCommand(orderedVideos, width, height) {
     // Sort interactions by timestamp in ascending order
     const sortedInteractions = interactionTimeline.sort((a, b) => a.timestamp - b.timestamp);
 
+    console.log('Sorted interactions:', sortedInteractions);
+
     sortedInteractions.forEach((interaction, index) => {
         const nextInteraction = sortedInteractions[index + 1];
         const duration = nextInteraction ? nextInteraction.timestamp - interaction.timestamp : videos[0].duration - interaction.timestamp;
+
+        console.log(`Processing interaction: ${JSON.stringify(interaction)}`);
+        console.log(`Duration: ${duration}`);
 
         switch (interaction.type) {
             case 'switchActive':
@@ -147,6 +165,9 @@ function generateCustomExportCommand(orderedVideos, width, height) {
                 break;
         }
 
+        console.log(`Active video: ${activeVideo}`);
+        console.log(`Visible videos: ${Array.from(visibleVideos)}`);
+
         if (duration > 0 && visibleVideos.size > 0) {
             let visibleVideoFilters = Array.from(visibleVideos).map(vIndex => {
                 return `[${vIndex}:v]trim=${currentTime}:${currentTime + duration},setpts=PTS-STARTPTS[v${vIndex}_${index}];`;
@@ -171,6 +192,8 @@ function generateCustomExportCommand(orderedVideos, width, height) {
         }
     });
 
+    console.log('Filter complex:', filterComplex);
+
     // Concatenate all segments
     const outLabels = filterComplex.filter(f => f.includes('[out')).map((_, i) => `[out${i}]`).join('');
     if (outLabels) {
@@ -189,6 +212,8 @@ function generateCustomExportCommand(orderedVideos, width, height) {
         // If no segments were created, return an error
         throw new Error('No visible video segments were created. The export cannot be completed.');
     }
+
+    console.log('Final FFmpeg command:', command.join(' '));
 
     return command;
 }
