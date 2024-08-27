@@ -21,26 +21,26 @@ let gridLayout = [];
 let isPlaying = false;
 let isTransitioning = false;
 
-let videoStates = {};
 let interactionTimeline = [];
-let videoContext;
-let videoSources = {};
+let videoStates = {};
 
 function initializeVideoStates() {
     videos.forEach((video, index) => {
         videoStates[index] = {
             isActive: false,
             isHidden: false,
-            lastActiveTime: 0
+            lastActiveTime: 0,
+            playbackRate: 1
         };
     });
 }
 
-function recordInteraction(type, videoIndex, timestamp) {
+function recordInteraction(type, videoIndex, timestamp, additionalData = {}) {
     const interaction = {
         type: type,
         videoIndex: videoIndex,
-        timestamp: timestamp
+        timestamp: timestamp,
+        ...additionalData
     };
     interactionTimeline.push(interaction);
     logInteraction(interaction);
@@ -62,6 +62,18 @@ function logInteraction(interaction) {
             break;
         case 'playPause':
             actionText = isPlaying ? 'Played videos' : 'Paused videos';
+            break;
+        case 'play':
+            actionText = `Played ${getCameraType(interaction.videoIndex)} video`;
+            break;
+        case 'pause':
+            actionText = `Paused ${getCameraType(interaction.videoIndex)} video`;
+            break;
+        case 'seek':
+            actionText = `Seeked ${getCameraType(interaction.videoIndex)} video to ${formatTimestamp(interaction.timestamp)}`;
+            break;
+        case 'changePlaybackRate':
+            actionText = `Changed playback rate of ${getCameraType(interaction.videoIndex)} video to ${interaction.additionalData.rate}x`;
             break;
         default:
             return; // Don't log other events
@@ -89,7 +101,7 @@ function togglePlayPause() {
     isPlaying = !isPlaying;
     updatePlayPauseButton();
     const currentTime = videos[0].currentTime;
-    recordInteraction('playPause', null, currentTime);
+    recordInteraction('playPause', null, currentTime, { isPlaying: isPlaying });
     
     if (isPlaying) {
         playAllVideos();
@@ -138,7 +150,7 @@ function handlePlay(event) {
         isPlaying = true;
         updatePlayPauseButton();
         const currentTime = event.target.currentTime;
-        recordInteraction('playPause', null, currentTime);
+        recordInteraction('play', videos.indexOf(event.target), currentTime);
     }
     videos.forEach(video => {
         if (video !== event.target) {
@@ -163,7 +175,7 @@ function handlePause(event) {
         isPlaying = false;
         updatePlayPauseButton();
         const currentTime = event.target.currentTime;
-        recordInteraction('playPause', null, currentTime);
+        recordInteraction('pause', videos.indexOf(event.target), currentTime);
     }
     videos.forEach(video => {
         if (video !== event.target) {
@@ -174,6 +186,12 @@ function handlePause(event) {
     setTimeout(() => {
         isTransitioning = false;
     }, 300); // Debounce for 300ms
+}
+
+function handleSeek(event) {
+    const videoIndex = videos.indexOf(event.target);
+    const currentTime = event.target.currentTime;
+    recordInteraction('seek', videoIndex, currentTime);
 }
 
 function handleFileSelect(event) {
@@ -292,6 +310,8 @@ function createVideoItem(videoData, index) {
     video.controls = true;
     video.addEventListener('play', handlePlay);
     video.addEventListener('pause', handlePause);
+    video.addEventListener('seeked', handleSeek);
+    video.addEventListener('ratechange', handlePlaybackRateChange);
     video.addEventListener('timeupdate', handleTimeUpdate);
     videoItem.appendChild(video);
 
@@ -370,7 +390,7 @@ function toggleVideoVisibility(videoItem) {
     }
 
     videoStates[index].isHidden = !videoStates[index].isHidden;
-    recordInteraction('toggleVisibility', index, currentTime);
+    recordInteraction('toggleVisibility', index, currentTime, { isHidden: videoStates[index].isHidden });
 
     videoItem.classList.toggle('hidden');
     updateGridLayout();
@@ -480,4 +500,11 @@ function handleTimeUpdate(event) {
             video.currentTime = event.target.currentTime;
         }
     });
+}
+
+function handlePlaybackRateChange(event) {
+    const videoIndex = videos.indexOf(event.target);
+    const newRate = event.target.playbackRate;
+    videoStates[videoIndex].playbackRate = newRate;
+    recordInteraction('changePlaybackRate', videoIndex, event.target.currentTime, { rate: newRate });
 }
