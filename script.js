@@ -24,6 +24,9 @@ let isTransitioning = false;
 let interactionTimeline = [];
 let videoStates = {};
 
+let availableDates = new Set();
+let availableTimes = {};
+
 function initializeVideoStates() {
     videos.forEach((video, index) => {
         videoStates[index] = {
@@ -250,6 +253,19 @@ function handleFileSelect(event) {
         document.getElementById('playPauseButton').disabled = false;
         updatePlayPauseButton(); // Initialize button state
     });
+
+    allFiles.forEach(file => {
+        if (file.name.endsWith('.mp4')) {
+            const [date, time] = file.name.split('_');
+            availableDates.add(date);
+            if (!availableTimes[date]) {
+                availableTimes[date] = new Set();
+            }
+            availableTimes[date].add(time.split('-').slice(0, 3).join('-'));
+        }
+    });
+
+    updateDatePicker();
 }
 
 function extractDateTime(fileName) {
@@ -510,3 +526,50 @@ function handlePlaybackRateChange(event) {
     videoStates[videoIndex].playbackRate = newRate;
     recordInteraction('changePlaybackRate', videoIndex, event.target.currentTime, { rate: newRate });
 }
+
+function updateDatePicker() {
+    const datePicker = document.getElementById('datePicker');
+    datePicker.min = Array.from(availableDates).sort()[0];
+    datePicker.max = Array.from(availableDates).sort().pop();
+    datePicker.value = datePicker.min;
+    updateTimeSelect(datePicker.value);
+}
+
+function updateTimeSelect(selectedDate) {
+    const timeSelect = document.getElementById('timeSelect');
+    timeSelect.innerHTML = '';
+    if (availableTimes[selectedDate]) {
+        availableTimes[selectedDate].forEach(time => {
+            const option = document.createElement('option');
+            option.value = time;
+            option.textContent = time;
+            timeSelect.appendChild(option);
+        });
+    }
+    if (timeSelect.options.length > 0) {
+        loadVideosForTimestamp(selectedDate + '_' + timeSelect.value);
+    }
+}
+
+function loadVideosForTimestamp(timestamp) {
+    // Clear existing videos
+    videoContainer.innerHTML = '';
+    
+    // Load new videos
+    const videoFiles = allFiles.filter(file => file.name.startsWith(timestamp) && file.name.endsWith('.mp4'));
+    videoFiles.forEach(file => {
+        const videoElement = createVideoElement(file);
+        videoContainer.appendChild(videoElement);
+    });
+
+    // Update the interaction log
+    logInteraction('Loaded videos for ' + timestamp);
+}
+
+// Event listeners
+document.getElementById('fileInput').addEventListener('change', handleFileSelect);
+document.getElementById('datePicker').addEventListener('change', (e) => updateTimeSelect(e.target.value));
+document.getElementById('timeSelect').addEventListener('change', (e) => {
+    const selectedDate = document.getElementById('datePicker').value;
+    loadVideosForTimestamp(selectedDate + '_' + e.target.value);
+});
