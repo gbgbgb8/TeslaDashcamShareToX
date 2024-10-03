@@ -1,6 +1,5 @@
 document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('fileInput').addEventListener('change', handleFileSelect);
-    document.getElementById('dateTimeSelect').addEventListener('change', handleDateTimeChange);
     document.getElementById('standardLayoutButton').addEventListener('click', setStandardLayout);
     document.getElementById('exportStandardButton').addEventListener('click', () => showExportModal('standard'));
     document.getElementById('exportCustomButton').addEventListener('click', () => showExportModal('custom'));
@@ -370,34 +369,6 @@ function extractCameraType(fileName) {
     return 'Unknown';
 }
 
-function handleDateTimeChange() {
-    const dateTimeSelect = document.getElementById('dateTimeSelect');
-    const selectedDateTime = dateTimeSelect.value;
-    const videoContainer = document.getElementById('videoContainer');
-    const clipList = document.getElementById('clipList');
-    
-    videoContainer.innerHTML = '<div class="grid-container"></div>';
-    const gridContainer = videoContainer.querySelector('.grid-container');
-    clipList.innerHTML = '';
-    videos = [];
-
-    if (videoGroups[selectedDateTime]) {
-        videoGroups[selectedDateTime].forEach((videoData, index) => {
-            const videoItem = createVideoItem(videoData, index);
-            gridContainer.appendChild(videoItem);
-            videos.push(videoItem.querySelector('video')); // Store the video element
-
-            const clipItem = createClipItem(videoData, index);
-            clipList.appendChild(clipItem);
-        });
-
-        initializeVideoStates(); // Initialize video states
-        updateGridLayout();
-        
-        console.log('Videos after handleDateTimeChange:', videos.map(v => v.src));
-    }
-}
-
 function createVideoItem(videoData, index) {
     const videoItem = document.createElement('div');
     videoItem.className = 'video-item secondary';
@@ -615,3 +586,9 @@ document.getElementById('timeSelect').addEventListener('change', (e) => {
     const selectedTime = e.target.value.replace(/:/g, '-');
     loadVideosForTimestamp(selectedDate + '_' + selectedTime);
 });
+
+// Make sure these functions are defined
+function showExportModal(type) {
+    console.log(`Showing export modal for ${type}`);
+    // Implement the export modal functionality here
+}
