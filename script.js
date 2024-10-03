@@ -1,5 +1,5 @@
 document.addEventListener('DOMContentLoaded', function() {
-    document.getElementById('fileInput').addEventListener('change', handleFileSelect);
+    document.getElementById('fileInput').addEventListener('change', handleFolderSelect);
     document.getElementById('standardLayoutButton').addEventListener('click', setStandardLayout);
     document.getElementById('exportStandardButton').addEventListener('click', () => showExportModal('standard'));
     document.getElementById('exportCustomButton').addEventListener('click', () => showExportModal('custom'));
@@ -26,7 +26,8 @@ let videoStates = {};
 let availableDates = new Set();
 let availableTimes = {};
 
-let allFiles = []; // Add this line to store all loaded files
+let allFiles = [];
+let dateRange = { start: null, end: null };
 
 function initializeVideoStates() {
     videos.forEach((video, index) => {
@@ -203,49 +204,119 @@ function handleSeek(event) {
     recordInteraction('seek', videoIndex, currentTime);
 }
 
-function handleFileSelect(event) {
+function handleFolderSelect(event) {
     const files = event.target.files;
-    const loadingOverlay = document.getElementById('loadingOverlay');
+    allFiles = Array.from(files);
     
-    if (files.length === 0) {
-        console.warn("No files selected");
+    const dates = new Set();
+    allFiles.forEach(file => {
+        if (file.name.endsWith('.mp4')) {
+            const date = file.name.split('_')[0];
+            dates.add(date);
+        }
+    });
+
+    const sortedDates = Array.from(dates).sort();
+    if (sortedDates.length > 0) {
+        showDateRangeSelector(sortedDates[0], sortedDates[sortedDates.length - 1]);
+    } else {
+        alert('No video files found in the selected folder.');
+    }
+}
+
+function showDateRangeSelector(minDate, maxDate) {
+    const modal = document.createElement('div');
+    modal.className = 'modal fade';
+    modal.id = 'dateRangeModal';
+    modal.innerHTML = `
+        <div class="modal-dialog">
+            <div class="modal-content bg-dark text-light">
+                <div class="modal-header">
+                    <h5 class="modal-title">Select Date Range</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="startDate" class="form-label">Start Date:</label>
+                        <input type="date" id="startDate" class="form-control" min="${minDate}" max="${maxDate}">
+                    </div>
+                    <div class="mb-3">
+                        <label for="endDate" class="form-label">End Date:</label>
+                        <input type="date" id="endDate" class="form-control" min="${minDate}" max="${maxDate}">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="loadSelectedDates">Load Selected Dates</button>
+                </div>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+
+    const dateRangeModal = new bootstrap.Modal(modal);
+    dateRangeModal.show();
+
+    document.getElementById('loadSelectedDates').addEventListener('click', () => {
+        const startDate = document.getElementById('startDate').value;
+        const endDate = document.getElementById('endDate').value;
+        if (startDate && endDate) {
+            dateRange.start = startDate;
+            dateRange.end = endDate;
+            dateRangeModal.hide();
+            loadSelectedDateRange();
+        } else {
+            alert('Please select both start and end dates.');
+        }
+    });
+}
+
+function loadSelectedDateRange() {
+    const filteredFiles = allFiles.filter(file => {
+        if (file.name.endsWith('.mp4')) {
+            const fileDate = file.name.split('_')[0];
+            return fileDate >= dateRange.start && fileDate <= dateRange.end;
+        }
+        return false;
+    });
+
+    if (filteredFiles.length === 0) {
+        alert('No video files found in the selected date range.');
         return;
     }
 
+    // Clear previous data
     videoGroups = {};
     videos = [];
-    allFiles = Array.from(files);
 
+    const loadingOverlay = document.getElementById('loadingOverlay');
     loadingOverlay.classList.remove('d-none');
 
-    Promise.all(allFiles.map(file => {
-        if (file.name.endsWith('.mp4')) {
-            const dateTime = extractDateTime(file.name);
-            if (dateTime === 'Unknown') {
-                console.warn("Could not extract date/time from filename:", file.name);
-                return Promise.resolve();
-            }
-            if (!videoGroups[dateTime]) {
-                videoGroups[dateTime] = [];
-            }
-            return new Promise((resolve) => {
-                const video = document.createElement('video');
-                video.preload = 'metadata';
-                video.onloadedmetadata = () => {
-                    videoGroups[dateTime].push({
-                        file: file,
-                        duration: video.duration
-                    });
-                    resolve();
-                };
-                video.onerror = () => {
-                    console.error("Error loading video:", file.name);
-                    resolve();
-                };
-                video.src = URL.createObjectURL(file);
-            });
+    Promise.all(filteredFiles.map(file => {
+        const dateTime = extractDateTime(file.name);
+        if (dateTime === 'Unknown') {
+            console.warn("Could not extract date/time from filename:", file.name);
+            return Promise.resolve();
         }
-        return Promise.resolve();
+        if (!videoGroups[dateTime]) {
+            videoGroups[dateTime] = [];
+        }
+        return new Promise((resolve) => {
+            const video = document.createElement('video');
+            video.preload = 'metadata';
+            video.onloadedmetadata = () => {
+                videoGroups[dateTime].push({
+                    file: file,
+                    duration: video.duration
+                });
+                resolve();
+            };
+            video.onerror = () => {
+                console.error("Error loading video:", file.name);
+                resolve();
+            };
+            video.src = URL.createObjectURL(file);
+        });
     })).then(() => {
         populateDatePicker();
         document.getElementById('exportStandardButton').disabled = false;
@@ -579,7 +650,6 @@ function handlePlaybackRateChange(event) {
 }
 
 // Event listeners
-document.getElementById('fileInput').addEventListener('change', handleFileSelect);
 document.getElementById('datePicker').addEventListener('change', (e) => updateTimeSelect(e.target.value));
 document.getElementById('timeSelect').addEventListener('change', (e) => {
     const selectedDate = document.getElementById('datePicker').value;
