@@ -68,7 +68,7 @@ async function exportVideo(resolution, exportType, customInteractions = null) {
         });
 
         console.log('Running FFmpeg command:', command.join(' '));
-        await ffmpeg.run(...command);
+        await ffmpeg.run(...command, '-report');  // Add -report flag to generate a log file
         console.log('FFmpeg command completed');
 
         if (isCancelled) throw new Error('Export cancelled by user');
@@ -78,7 +78,17 @@ async function exportVideo(resolution, exportType, customInteractions = null) {
         console.log('Files in FFmpeg filesystem:', files);
 
         if (!files.includes('output.mp4')) {
-            console.error('FFmpeg command output:', await ffmpeg.FS('readFile', 'ffmpeg-output.txt'));
+            console.error('Output file not found. Checking FFmpeg log...');
+            
+            // Try to read the FFmpeg log file
+            const logFiles = files.filter(file => file.startsWith('ffmpeg-') && file.endsWith('.log'));
+            if (logFiles.length > 0) {
+                const logContent = await ffmpeg.FS('readFile', logFiles[0]);
+                console.error('FFmpeg log content:', new TextDecoder().decode(logContent));
+            } else {
+                console.error('No FFmpeg log file found');
+            }
+
             throw new Error('Output file not found. FFmpeg command may have failed.');
         }
 
@@ -90,7 +100,6 @@ async function exportVideo(resolution, exportType, customInteractions = null) {
 
     } catch (error) {
         console.error('Error during export:', error);
-        console.error('FFmpeg command output:', await ffmpeg.FS('readFile', 'ffmpeg-output.txt'));
         updateProgressLog(progressWindow, 'Error: ' + error.message);
         if (error.message !== 'Export cancelled by user') {
             showCloseButton(progressWindow);
@@ -146,8 +155,12 @@ function generateCustomExportCommand(orderedVideos, width, height, customInterac
             case 'toggleVisibility':
                 if (Array.isArray(interaction.visibleVideos)) {
                     visibleVideos = new Set(interaction.visibleVideos);
-                } else {
-                    console.warn('Invalid visibleVideos data:', interaction.visibleVideos);
+                } else if (interaction.videoIndex !== undefined) {
+                    if (visibleVideos.has(interaction.videoIndex)) {
+                        visibleVideos.delete(interaction.videoIndex);
+                    } else {
+                        visibleVideos.add(interaction.videoIndex);
+                    }
                 }
                 break;
             case 'seek':
