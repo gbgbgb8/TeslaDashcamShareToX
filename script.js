@@ -233,12 +233,19 @@ function handleFileSelect(event) {
         return Promise.resolve();
     })).then(() => {
         populateDatePicker();
-        loadingOverlay.classList.add('d-none');
         // Enable the export buttons
         document.getElementById('exportStandardButton').disabled = false;
         document.getElementById('exportCustomButton').disabled = false;
         document.getElementById('playPauseButton').disabled = false;
         updatePlayPauseButton(); // Initialize button state
+    }).catch(error => {
+        console.error('Error processing files:', error);
+    }).finally(() => {
+        console.log('File processing complete');
+        setTimeout(() => {
+            loadingOverlay.classList.add('d-none');
+            console.log('Loading overlay hidden');
+        }, 500);
     });
 }
 
