@@ -67,7 +67,7 @@ async function exportVideo(resolution, exportType, customInteractions = null) {
             }
         });
 
-        console.log('Running FFmpeg command...');
+        console.log('Running FFmpeg command:', command.join(' '));
         await ffmpeg.run(...command);
         console.log('FFmpeg command completed');
 
@@ -78,6 +78,7 @@ async function exportVideo(resolution, exportType, customInteractions = null) {
         console.log('Files in FFmpeg filesystem:', files);
 
         if (!files.includes('output.mp4')) {
+            console.error('FFmpeg command output:', await ffmpeg.FS('readFile', 'ffmpeg-output.txt'));
             throw new Error('Output file not found. FFmpeg command may have failed.');
         }
 
@@ -89,6 +90,7 @@ async function exportVideo(resolution, exportType, customInteractions = null) {
 
     } catch (error) {
         console.error('Error during export:', error);
+        console.error('FFmpeg command output:', await ffmpeg.FS('readFile', 'ffmpeg-output.txt'));
         updateProgressLog(progressWindow, 'Error: ' + error.message);
         if (error.message !== 'Export cancelled by user') {
             showCloseButton(progressWindow);
@@ -128,6 +130,11 @@ function generateCustomExportCommand(orderedVideos, width, height, customInterac
     let activeVideo = 0;
     let visibleVideos = new Set([0, 1, 2, 3]); // Initially, all videos are visible
 
+    if (customInteractions.length === 0) {
+        console.warn('No custom interactions found. Falling back to standard export.');
+        return generateStandardExportCommand(orderedVideos, width, height);
+    }
+
     customInteractions.forEach((interaction, index) => {
         const nextInteraction = customInteractions[index + 1];
         const duration = nextInteraction ? nextInteraction.timestamp - interaction.timestamp : orderedVideos[0].video.duration - interaction.timestamp;
@@ -137,7 +144,11 @@ function generateCustomExportCommand(orderedVideos, width, height, customInterac
                 activeVideo = interaction.videoIndex;
                 break;
             case 'toggleVisibility':
-                visibleVideos = new Set(interaction.visibleVideos);
+                if (Array.isArray(interaction.visibleVideos)) {
+                    visibleVideos = new Set(interaction.visibleVideos);
+                } else {
+                    console.warn('Invalid visibleVideos data:', interaction.visibleVideos);
+                }
                 break;
             case 'seek':
                 currentTime = interaction.timestamp;
@@ -183,9 +194,11 @@ function generateCustomExportCommand(orderedVideos, width, height, customInterac
             'output.mp4'
         ]);
     } else {
-        throw new Error('No visible video segments were created. The export cannot be completed.');
+        console.warn('No output segments created. Falling back to standard export.');
+        return generateStandardExportCommand(orderedVideos, width, height);
     }
 
+    console.log('Generated FFmpeg command:', command.join(' '));
     return command;
 }
 
