@@ -27,6 +27,8 @@ let videoStates = {};
 let availableDates = new Set();
 let availableTimes = {};
 
+let allFiles = []; // Add this line to store all loaded files
+
 function initializeVideoStates() {
     videos.forEach((video, index) => {
         videoStates[index] = {
@@ -201,17 +203,16 @@ function handleSeek(event) {
 
 function handleFileSelect(event) {
     const files = event.target.files;
-    const dateTimeSelect = document.getElementById('dateTimeSelect');
     const loadingOverlay = document.getElementById('loadingOverlay');
     
-    dateTimeSelect.innerHTML = '';
     videoGroups = {};
     videos = [];
+    allFiles = Array.from(files); // Store all files
 
     loadingOverlay.classList.remove('d-none');
 
-    Promise.all(Array.from(files).map(file => {
-        if (file.type === 'video/mp4') {
+    Promise.all(allFiles.map(file => {
+        if (file.name.endsWith('.mp4')) {
             const dateTime = extractDateTime(file.name);
             if (!videoGroups[dateTime]) {
                 videoGroups[dateTime] = [];
@@ -231,21 +232,7 @@ function handleFileSelect(event) {
         }
         return Promise.resolve();
     })).then(() => {
-        // Populate the dateTimeSelect dropdown
-        Object.keys(videoGroups).forEach(dateTime => {
-            const option = document.createElement('option');
-            option.value = dateTime;
-            option.textContent = dateTime;
-            dateTimeSelect.appendChild(option);
-        });
-
-        // Automatically select the first option
-        if (dateTimeSelect.options.length > 0) {
-            dateTimeSelect.selectedIndex = 0;
-            handleDateTimeChange();
-            setStandardLayout(); // Apply Standard Layout immediately after loading
-        }
-
+        populateDatePicker();
         loadingOverlay.classList.add('d-none');
         // Enable the export buttons
         document.getElementById('exportStandardButton').disabled = false;
@@ -253,19 +240,85 @@ function handleFileSelect(event) {
         document.getElementById('playPauseButton').disabled = false;
         updatePlayPauseButton(); // Initialize button state
     });
+}
+
+function populateDatePicker() {
+    const datePicker = document.getElementById('datePicker');
+    const dates = new Set();
 
     allFiles.forEach(file => {
         if (file.name.endsWith('.mp4')) {
-            const [date, time] = file.name.split('_');
-            availableDates.add(date);
-            if (!availableTimes[date]) {
-                availableTimes[date] = new Set();
-            }
-            availableTimes[date].add(time.split('-').slice(0, 3).join('-'));
+            const date = file.name.split('_')[0];
+            dates.add(date);
         }
     });
 
-    updateDatePicker();
+    const sortedDates = Array.from(dates).sort();
+    datePicker.innerHTML = '';
+    sortedDates.forEach(date => {
+        const option = document.createElement('option');
+        option.value = date;
+        option.textContent = date;
+        datePicker.appendChild(option);
+    });
+
+    if (sortedDates.length > 0) {
+        datePicker.value = sortedDates[0];
+        updateTimeSelect(sortedDates[0]);
+    }
+}
+
+function updateTimeSelect(selectedDate) {
+    const timeSelect = document.getElementById('timeSelect');
+    const times = new Set();
+
+    allFiles.forEach(file => {
+        if (file.name.endsWith('.mp4') && file.name.startsWith(selectedDate)) {
+            const time = file.name.split('_')[1].split('-').slice(0, 3).join(':');
+            times.add(time);
+        }
+    });
+
+    const sortedTimes = Array.from(times).sort();
+    timeSelect.innerHTML = '';
+    sortedTimes.forEach(time => {
+        const option = document.createElement('option');
+        option.value = time;
+        option.textContent = time;
+        timeSelect.appendChild(option);
+    });
+
+    if (sortedTimes.length > 0) {
+        timeSelect.value = sortedTimes[0];
+        loadVideosForTimestamp(selectedDate + '_' + sortedTimes[0].replace(/:/g, '-'));
+    }
+}
+
+function loadVideosForTimestamp(timestamp) {
+    const videoContainer = document.getElementById('videoContainer');
+    const clipList = document.getElementById('clipList');
+    
+    videoContainer.innerHTML = '<div class="grid-container"></div>';
+    const gridContainer = videoContainer.querySelector('.grid-container');
+    clipList.innerHTML = '';
+    videos = [];
+
+    const videoFiles = allFiles.filter(file => file.name.startsWith(timestamp) && file.name.endsWith('.mp4'));
+    videoFiles.forEach((file, index) => {
+        const videoItem = createVideoItem({ file: file }, index);
+        gridContainer.appendChild(videoItem);
+        videos.push(videoItem.querySelector('video'));
+
+        const clipItem = createClipItem({ file: file }, index);
+        clipList.appendChild(clipItem);
+    });
+
+    initializeVideoStates();
+    updateGridLayout();
+    setStandardLayout();
+    
+    // Update the interaction log
+    logInteraction('Loaded videos for ' + timestamp);
 }
 
 function extractDateTime(fileName) {
@@ -527,49 +580,11 @@ function handlePlaybackRateChange(event) {
     recordInteraction('changePlaybackRate', videoIndex, event.target.currentTime, { rate: newRate });
 }
 
-function updateDatePicker() {
-    const datePicker = document.getElementById('datePicker');
-    datePicker.min = Array.from(availableDates).sort()[0];
-    datePicker.max = Array.from(availableDates).sort().pop();
-    datePicker.value = datePicker.min;
-    updateTimeSelect(datePicker.value);
-}
-
-function updateTimeSelect(selectedDate) {
-    const timeSelect = document.getElementById('timeSelect');
-    timeSelect.innerHTML = '';
-    if (availableTimes[selectedDate]) {
-        availableTimes[selectedDate].forEach(time => {
-            const option = document.createElement('option');
-            option.value = time;
-            option.textContent = time;
-            timeSelect.appendChild(option);
-        });
-    }
-    if (timeSelect.options.length > 0) {
-        loadVideosForTimestamp(selectedDate + '_' + timeSelect.value);
-    }
-}
-
-function loadVideosForTimestamp(timestamp) {
-    // Clear existing videos
-    videoContainer.innerHTML = '';
-    
-    // Load new videos
-    const videoFiles = allFiles.filter(file => file.name.startsWith(timestamp) && file.name.endsWith('.mp4'));
-    videoFiles.forEach(file => {
-        const videoElement = createVideoElement(file);
-        videoContainer.appendChild(videoElement);
-    });
-
-    // Update the interaction log
-    logInteraction('Loaded videos for ' + timestamp);
-}
-
 // Event listeners
 document.getElementById('fileInput').addEventListener('change', handleFileSelect);
 document.getElementById('datePicker').addEventListener('change', (e) => updateTimeSelect(e.target.value));
 document.getElementById('timeSelect').addEventListener('change', (e) => {
     const selectedDate = document.getElementById('datePicker').value;
-    loadVideosForTimestamp(selectedDate + '_' + e.target.value);
+    const selectedTime = e.target.value.replace(/:/g, '-');
+    loadVideosForTimestamp(selectedDate + '_' + selectedTime);
 });
