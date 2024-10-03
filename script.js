@@ -89,8 +89,15 @@ function logInteraction(interaction) {
 }
 
 function formatTimestamp(timestamp) {
-    const date = new Date(null);
-    date.setSeconds(timestamp);
+    if (isNaN(timestamp)) {
+        console.warn("Invalid timestamp:", timestamp);
+        return "Invalid timestamp";
+    }
+    const date = new Date(timestamp * 1000); // Assuming timestamp is in seconds
+    if (isNaN(date.getTime())) {
+        console.warn("Invalid date from timestamp:", timestamp);
+        return "Invalid date";
+    }
     return date.toISOString().substr(11, 8);
 }
 
@@ -100,23 +107,19 @@ function getCameraType(videoIndex) {
 }
 
 function togglePlayPause() {
-    if (isTransitioning) return;
-    isTransitioning = true;
-    
     isPlaying = !isPlaying;
     updatePlayPauseButton();
-    const currentTime = videos[0].currentTime;
+    
+    videos.forEach(video => {
+        if (isPlaying) {
+            video.play().catch(e => console.error("Error playing video:", e));
+        } else {
+            video.pause();
+        }
+    });
+    
+    const currentTime = videos[0] ? videos[0].currentTime : 0;
     recordInteraction('playPause', null, currentTime, { isPlaying: isPlaying });
-    
-    if (isPlaying) {
-        playAllVideos();
-    } else {
-        pauseAllVideos();
-    }
-    
-    setTimeout(() => {
-        isTransitioning = false;
-    }, 300); // Debounce for 300ms
 }
 
 function updatePlayPauseButton() {
@@ -205,15 +208,24 @@ function handleFileSelect(event) {
     const files = event.target.files;
     const loadingOverlay = document.getElementById('loadingOverlay');
     
+    if (files.length === 0) {
+        console.warn("No files selected");
+        return;
+    }
+
     videoGroups = {};
     videos = [];
-    allFiles = Array.from(files); // Store all files
+    allFiles = Array.from(files);
 
     loadingOverlay.classList.remove('d-none');
 
     Promise.all(allFiles.map(file => {
         if (file.name.endsWith('.mp4')) {
             const dateTime = extractDateTime(file.name);
+            if (dateTime === 'Unknown') {
+                console.warn("Could not extract date/time from filename:", file.name);
+                return Promise.resolve();
+            }
             if (!videoGroups[dateTime]) {
                 videoGroups[dateTime] = [];
             }
@@ -227,17 +239,20 @@ function handleFileSelect(event) {
                     });
                     resolve();
                 };
+                video.onerror = () => {
+                    console.error("Error loading video:", file.name);
+                    resolve();
+                };
                 video.src = URL.createObjectURL(file);
             });
         }
         return Promise.resolve();
     })).then(() => {
         populateDatePicker();
-        // Enable the export buttons
         document.getElementById('exportStandardButton').disabled = false;
         document.getElementById('exportCustomButton').disabled = false;
         document.getElementById('playPauseButton').disabled = false;
-        updatePlayPauseButton(); // Initialize button state
+        updatePlayPauseButton();
     }).catch(error => {
         console.error('Error processing files:', error);
     }).finally(() => {
@@ -311,6 +326,12 @@ function loadVideosForTimestamp(timestamp) {
     videos = [];
 
     const videoFiles = allFiles.filter(file => file.name.startsWith(timestamp) && file.name.endsWith('.mp4'));
+    if (videoFiles.length === 0) {
+        console.warn("No video files found for timestamp:", timestamp);
+        logInteraction('No videos found for ' + timestamp);
+        return;
+    }
+
     videoFiles.forEach((file, index) => {
         const videoItem = createVideoItem({ file: file }, index);
         gridContainer.appendChild(videoItem);
@@ -324,7 +345,6 @@ function loadVideosForTimestamp(timestamp) {
     updateGridLayout();
     setStandardLayout();
     
-    // Update the interaction log
     logInteraction('Loaded videos for ' + timestamp);
 }
 
