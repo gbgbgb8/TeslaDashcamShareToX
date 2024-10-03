@@ -589,6 +589,226 @@ document.getElementById('timeSelect').addEventListener('change', (e) => {
 
 // Make sure these functions are defined
 function showExportModal(type) {
-    console.log(`Showing export modal for ${type}`);
-    // Implement the export modal functionality here
+    const modal = document.createElement('div');
+    modal.className = 'modal fade';
+    modal.id = 'exportModal';
+    modal.innerHTML = `
+        <div class="modal-dialog">
+            <div class="modal-content bg-dark text-light">
+                <div class="modal-header">
+                    <h5 class="modal-title">Export ${type.charAt(0).toUpperCase() + type.slice(1)} Video</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="resolutionSelect" class="form-label">Select Resolution:</label>
+                        <select id="resolutionSelect" class="form-select">
+                            <option value="1280x960">1280x960 (Original)</option>
+                            <option value="1280x720">1280x720 (Landscape)</option>
+                            <option value="720x1280">720x1280 (Portrait)</option>
+                            <option value="720x720">720x720 (Square)</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="startExportButton">Start Export</button>
+                </div>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+
+    const exportModal = new bootstrap.Modal(modal);
+    exportModal.show();
+
+    document.getElementById('startExportButton').addEventListener('click', () => {
+        const resolution = document.getElementById('resolutionSelect').value;
+        exportModal.hide();
+        if (type === 'custom') {
+            exportCustomVideo(resolution);
+        } else {
+            exportVideo(resolution, 'standard');
+        }
+    });
+}
+
+function exportCustomVideo(resolution) {
+    const customInteractions = processInteractions(interactionTimeline);
+    exportVideo(resolution, 'custom', customInteractions);
+}
+
+function processInteractions(interactions) {
+    let processedInteractions = [];
+    let currentActiveVideo = 0;
+    let visibleVideos = new Set([0, 1, 2, 3]); // Assuming 4 camera angles
+
+    interactions.forEach((interaction, index) => {
+        switch (interaction.type) {
+            case 'switchActive':
+                currentActiveVideo = interaction.videoIndex;
+                processedInteractions.push({
+                    type: 'switchActive',
+                    videoIndex: interaction.videoIndex,
+                    timestamp: interaction.timestamp
+                });
+                break;
+            case 'toggleVisibility':
+                if (interaction.additionalData && interaction.additionalData.isHidden !== undefined) {
+                    if (interaction.additionalData.isHidden) {
+                        visibleVideos.delete(interaction.videoIndex);
+                    } else {
+                        visibleVideos.add(interaction.videoIndex);
+                    }
+                } else {
+                    if (visibleVideos.has(interaction.videoIndex)) {
+                        visibleVideos.delete(interaction.videoIndex);
+                    } else {
+                        visibleVideos.add(interaction.videoIndex);
+                    }
+                }
+                processedInteractions.push({
+                    type: 'toggleVisibility',
+                    videoIndex: interaction.videoIndex,
+                    timestamp: interaction.timestamp,
+                    visibleVideos: Array.from(visibleVideos)
+                });
+                break;
+            case 'seek':
+                processedInteractions.push({
+                    type: 'seek',
+                    videoIndex: interaction.videoIndex,
+                    timestamp: interaction.timestamp
+                });
+                break;
+            case 'changePlaybackRate':
+                processedInteractions.push({
+                    type: 'changePlaybackRate',
+                    videoIndex: interaction.videoIndex,
+                    timestamp: interaction.timestamp,
+                    rate: interaction.additionalData.rate
+                });
+                break;
+        }
+    });
+
+    return processedInteractions;
+}
+
+// Update the existing exportVideo function in exportffmpeg.js
+async function exportVideo(resolution, exportType, customInteractions = null) {
+    const [width, height] = resolution.split('x').map(Number);
+    const progressWindow = createProgressWindow();
+    let isCancelled = false;
+
+    try {
+        const cameraOrder = ['front', 'back', 'left_repeater', 'right_repeater'];
+        const orderedVideos = cameraOrder.map(cameraType => {
+            const video = videos.find(v => {
+                const label = v.parentElement.querySelector('.video-label').textContent.toLowerCase();
+                return label === cameraType || 
+                       (cameraType === 'back' && label === 'rear') ||
+                       (cameraType === 'left_repeater' && label === 'left') ||
+                       (cameraType === 'right_repeater' && label === 'right');
+            });
+            return video ? { video, type: cameraType } : null;
+        }).filter(Boolean);
+
+        if (orderedVideos.length === 0) {
+            throw new Error('No camera angles found');
+        }
+
+        for (let i = 0; i < orderedVideos.length; i++) {
+            if (isCancelled) throw new Error('Export cancelled');
+            const videoName = `input${i}.mp4`;
+            const { video } = orderedVideos[i];
+            await ffmpeg.FS('writeFile', videoName, await fetchFile(video.src));
+        }
+
+        let command;
+        if (exportType === 'standard') {
+            command = generateStandardExportCommand(orderedVideos, width, height);
+        } else if (exportType === 'custom') {
+            command = generateCustomExportCommand(orderedVideos, width, height, customInteractions);
+        } else {
+            throw new Error('Invalid export type');
+        }
+
+        // ... (keep the rest of the exportVideo function as is)
+    } catch (error) {
+        console.error('Error during export:', error);
+        updateProgressLog(progressWindow, 'Error: ' + error.message);
+        if (error.message !== 'Export cancelled by user') {
+            showCloseButton(progressWindow);
+        }
+    }
+}
+
+// Add this function to exportffmpeg.js
+function generateCustomExportCommand(orderedVideos, width, height, customInteractions) {
+    let command = orderedVideos.map((_, i) => ['-i', `input${i}.mp4`]).flat();
+    let filterComplex = [];
+    let currentTime = 0;
+    let activeVideo = 0;
+    let visibleVideos = new Set([0, 1, 2, 3]); // Initially, all videos are visible
+
+    customInteractions.forEach((interaction, index) => {
+        const nextInteraction = customInteractions[index + 1];
+        const duration = nextInteraction ? nextInteraction.timestamp - interaction.timestamp : orderedVideos[0].video.duration - interaction.timestamp;
+
+        switch (interaction.type) {
+            case 'switchActive':
+                activeVideo = interaction.videoIndex;
+                break;
+            case 'toggleVisibility':
+                visibleVideos = new Set(interaction.visibleVideos);
+                break;
+            case 'seek':
+                currentTime = interaction.timestamp;
+                break;
+        }
+
+        if (duration > 0 && visibleVideos.size > 0) {
+            let visibleVideoFilters = Array.from(visibleVideos).map(vIndex => {
+                return `[${vIndex}:v]trim=${currentTime}:${currentTime + duration},setpts=PTS-STARTPTS[v${vIndex}_${index}];`;
+            }).join('');
+
+            filterComplex.push(visibleVideoFilters);
+
+            if (visibleVideos.size > 1) {
+                let overlayCommand = Array.from(visibleVideos).reduce((acc, vIndex, i) => {
+                    if (i === 0) return `[v${vIndex}_${index}]`;
+                    if (i === 1) return `${acc}[v${vIndex}_${index}]overlay=${vIndex % 2 === 1 ? 'W/2' : '0'}:${vIndex >= 2 ? 'H/2' : '0'}`;
+                    return `${acc}[temp${i-1}];[temp${i-1}][v${vIndex}_${index}]overlay=${vIndex % 2 === 1 ? 'W/2' : '0'}:${vIndex >= 2 ? 'H/2' : '0'}`;
+                }, '');
+
+                if (visibleVideos.size > 2) overlayCommand += `[temp${visibleVideos.size-1}]`;
+                filterComplex.push(`${overlayCommand}[out${index}];`);
+            } else {
+                filterComplex.push(`[v${Array.from(visibleVideos)[0]}_${index}]crop=iw:ih[out${index}];`);
+            }
+
+            currentTime += duration;
+        }
+    });
+
+    // Concatenate all segments
+    const outLabels = filterComplex.filter(f => f.includes('[out')).map((_, i) => `[out${i}]`).join('');
+    if (outLabels) {
+        filterComplex.push(`${outLabels}concat=n=${outLabels.split('][').length}:v=1[outv]`);
+
+        command = command.concat([
+            '-filter_complex', filterComplex.join(''),
+            '-map', '[outv]',
+            '-c:v', 'libx264',
+            '-crf', '23',
+            '-preset', 'medium',
+            '-s', `${width}x${height}`,
+            'output.mp4'
+        ]);
+    } else {
+        throw new Error('No visible video segments were created. The export cannot be completed.');
+    }
+
+    return command;
 }

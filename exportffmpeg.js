@@ -9,7 +9,7 @@ async function initializeFFmpeg() {
     }
 }
 
-async function exportVideo(resolution, exportType) {
+async function exportVideo(resolution, exportType, customInteractions = null) {
     const [width, height] = resolution.split('x').map(Number);
     const progressWindow = createProgressWindow();
     let isCancelled = false;
@@ -42,7 +42,7 @@ async function exportVideo(resolution, exportType) {
         if (exportType === 'standard') {
             command = generateStandardExportCommand(orderedVideos, width, height);
         } else if (exportType === 'custom') {
-            command = generateCustomExportCommand(orderedVideos, width, height);
+            command = generateCustomExportCommand(orderedVideos, width, height, customInteractions);
         } else {
             throw new Error('Invalid export type');
         }
@@ -121,52 +121,28 @@ function generateStandardExportCommand(orderedVideos, width, height) {
     return command;
 }
 
-function generateCustomExportCommand(orderedVideos, width, height) {
+function generateCustomExportCommand(orderedVideos, width, height, customInteractions) {
     let command = orderedVideos.map((_, i) => ['-i', `input${i}.mp4`]).flat();
     let filterComplex = [];
     let currentTime = 0;
     let activeVideo = 0;
     let visibleVideos = new Set([0, 1, 2, 3]); // Initially, all videos are visible
 
-    // Sort interactions by timestamp in ascending order
-    const sortedInteractions = interactionTimeline.sort((a, b) => a.timestamp - b.timestamp);
-
-    console.log('Sorted interactions:', sortedInteractions);
-
-    sortedInteractions.forEach((interaction, index) => {
-        const nextInteraction = sortedInteractions[index + 1];
-        const duration = nextInteraction ? nextInteraction.timestamp - interaction.timestamp : videos[0].duration - interaction.timestamp;
-
-        console.log(`Processing interaction: ${JSON.stringify(interaction)}`);
-        console.log(`Duration: ${duration}`);
+    customInteractions.forEach((interaction, index) => {
+        const nextInteraction = customInteractions[index + 1];
+        const duration = nextInteraction ? nextInteraction.timestamp - interaction.timestamp : orderedVideos[0].video.duration - interaction.timestamp;
 
         switch (interaction.type) {
             case 'switchActive':
                 activeVideo = interaction.videoIndex;
                 break;
             case 'toggleVisibility':
-                if (interaction.additionalData && interaction.additionalData.isHidden !== undefined) {
-                    if (interaction.additionalData.isHidden) {
-                        visibleVideos.delete(interaction.videoIndex);
-                    } else {
-                        visibleVideos.add(interaction.videoIndex);
-                    }
-                } else {
-                    // Toggle visibility if isHidden is not provided
-                    if (visibleVideos.has(interaction.videoIndex)) {
-                        visibleVideos.delete(interaction.videoIndex);
-                    } else {
-                        visibleVideos.add(interaction.videoIndex);
-                    }
-                }
+                visibleVideos = new Set(interaction.visibleVideos);
                 break;
             case 'seek':
                 currentTime = interaction.timestamp;
                 break;
         }
-
-        console.log(`Active video: ${activeVideo}`);
-        console.log(`Visible videos: ${Array.from(visibleVideos)}`);
 
         if (duration > 0 && visibleVideos.size > 0) {
             let visibleVideoFilters = Array.from(visibleVideos).map(vIndex => {
@@ -192,8 +168,6 @@ function generateCustomExportCommand(orderedVideos, width, height) {
         }
     });
 
-    console.log('Filter complex:', filterComplex);
-
     // Concatenate all segments
     const outLabels = filterComplex.filter(f => f.includes('[out')).map((_, i) => `[out${i}]`).join('');
     if (outLabels) {
@@ -209,11 +183,8 @@ function generateCustomExportCommand(orderedVideos, width, height) {
             'output.mp4'
         ]);
     } else {
-        // If no segments were created, return an error
         throw new Error('No visible video segments were created. The export cannot be completed.');
     }
-
-    console.log('Final FFmpeg command:', command.join(' '));
 
     return command;
 }
@@ -326,47 +297,6 @@ function showCloseButton(progressWindow) {
     cancelButton.onclick = () => {
         document.body.removeChild(progressWindow);
     };
-}
-
-window.showExportModal = function(exportType) {
-    const modal = document.createElement('div');
-    modal.className = 'modal fade';
-    modal.id = 'exportModal';
-    modal.innerHTML = `
-        <div class="modal-dialog">
-            <div class="modal-content bg-dark text-light">
-                <div class="modal-header">
-                    <h5 class="modal-title">Export ${exportType.charAt(0).toUpperCase() + exportType.slice(1)} Video</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <div class="mb-3">
-                        <label for="resolutionSelect" class="form-label">Select Resolution:</label>
-                        <select id="resolutionSelect" class="form-select">
-                            <option value="1280x960">1280x960 (Original)</option>
-                            <option value="1280x720">1280x720 (Landscape)</option>
-                            <option value="720x1280">720x1280 (Portrait)</option>
-                            <option value="720x720">720x720 (Square)</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-primary" id="startExportButton">Start Export</button>
-                </div>
-            </div>
-        </div>
-    `;
-    document.body.appendChild(modal);
-
-    const exportModal = new bootstrap.Modal(modal);
-    exportModal.show();
-
-    document.getElementById('startExportButton').addEventListener('click', () => {
-        const resolution = document.getElementById('resolutionSelect').value;
-        exportModal.hide();
-        exportVideo(resolution, exportType);
-    });
 }
 
 document.addEventListener('DOMContentLoaded', initializeFFmpeg);
